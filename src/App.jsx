@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { ThemeProvider } from './contexts/ThemeContext'
 import Layout from './components/Layout'
 import HomePage from './pages/HomePage'
 import ThreadPage from './pages/ThreadPage'
@@ -10,19 +11,21 @@ import SearchPage from './pages/SearchPage'
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<HomePage />} />
-          <Route path="/thread/:id" element={<ThreadPage />} />
-          <Route path="/tag/:tagName" element={<TagPage />} />
-          <Route path="/category" element={<CategoryPage />} />
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="/friends" element={<FriendsPage />} />
-          <Route path="/search" element={<SearchPage />} />
-        </Route>
-      </Routes>
-    </Router>
+    <ThemeProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={<Layout />}>
+            <Route index element={<HomePage />} />
+            <Route path="/thread/:id" element={<ThreadPage />} />
+            <Route path="/tag/:tagName" element={<TagPage />} />
+            <Route path="/category" element={<CategoryPage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/friends" element={<FriendsPage />} />
+            <Route path="/search" element={<SearchPage />} />
+          </Route>
+        </Routes>
+      </Router>
+    </ThemeProvider>
   )
 }
 

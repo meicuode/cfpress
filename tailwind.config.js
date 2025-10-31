@@ -7,14 +7,14 @@ export default {
   theme: {
     extend: {
       colors: {
-        'bg-primary': '#1a1d29',
-        'bg-secondary': 'rgba(26, 29, 41, 0.8)',
-        'bg-card': 'rgba(40, 44, 60, 0.6)',
-        'text-primary': '#e0e0e0',
-        'text-secondary': '#a0a0a0',
-        'accent-blue': '#4a9eff',
+        'bg-primary': 'var(--bg-primary)',
+        'bg-secondary': 'var(--bg-secondary)',
+        'bg-card': 'var(--bg-card)',
+        'text-primary': 'var(--text-primary)',
+        'text-secondary': 'var(--text-secondary)',
+        'accent-blue': 'var(--accent-blue)',
         'accent-green': '#6dd47e',
-        'border': 'rgba(255, 255, 255, 0.1)',
+        'border': 'var(--border)',
       },
     },
   },

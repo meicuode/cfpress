@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { navigationConfig, fetchNavigationConfig } from '../config/navigation'
+import { useTheme } from '../contexts/ThemeContext'
 
 function Navbar() {
   const location = useLocation()
   const navigate = useNavigate()
+  const { theme, toggleTheme } = useTheme()
   const [navConfig, setNavConfig] = useState(navigationConfig)
   const [searchVisible, setSearchVisible] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -31,11 +33,6 @@ function Navbar() {
 
   const handleRefresh = () => {
     window.location.reload()
-  }
-
-  const handleToggleTheme = () => {
-    // TODO: Implement theme toggle
-    console.log('Toggle theme')
   }
 
   return (
@@ -102,11 +99,11 @@ function Navbar() {
             🔄
           </button>
           <button
-            onClick={handleToggleTheme}
+            onClick={toggleTheme}
             className="w-8 h-8 flex items-center justify-center rounded-md text-text-secondary transition-all text-base hover:bg-bg-card hover:text-text-primary"
-            title="切换主题"
+            title={theme === 'dark' ? '切换到日间模式' : '切换到夜间模式'}
           >
-            🌙
+            {theme === 'dark' ? '🌙' : '☀️'}
           </button>
         </div>
       </div>
