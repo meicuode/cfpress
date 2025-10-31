@@ -10,7 +10,8 @@ function HomePage() {
       views: '770',
       comments: 5,
       tags: ['分享', '折腾'],
-      description: '本周六凌晨正好看了 10 传后，开着窗门看到了北极光...'
+      description: '本周六凌晨正好看了 10 传后，开着窗门看到了北极光...',
+      thumbnail: 'https://via.placeholder.com/240x218/4a9eff/ffffff?text=hahaSIM'
     },
     {
       id: 2,
@@ -19,7 +20,8 @@ function HomePage() {
       views: '1025',
       comments: 3,
       tags: ['科技', '测试'],
-      description: '本周六凌晨正好看了 14 天升，拿着窗户看到星空...'
+      description: '本周六凌晨正好看了 14 天升，拿着窗户看到星空...',
+      thumbnail: 'https://via.placeholder.com/240x218/6dd47e/ffffff?text=HuaweiCloud'
     },
     {
       id: 3,
@@ -28,7 +30,8 @@ function HomePage() {
       views: '892',
       comments: 8,
       tags: ['教程', '音乐'],
-      description: '分享一个下载高品质音乐的方法...'
+      description: '分享一个下载高品质音乐的方法...',
+      thumbnail: 'https://via.placeholder.com/240x218/ff6b6b/ffffff?text=Apple+Music'
     }
   ]
 
@@ -40,33 +43,43 @@ function HomePage() {
             key={post.id}
             className="bg-bg-card backdrop-blur-md rounded-xl border border-border p-6 transition-all hover:-translate-y-0.5 hover:border-accent-blue hover:shadow-[0_8px_24px_rgba(0,0,0,0.3)]"
           >
-            <Link to={`/thread/${post.id}`} className="block">
-              <div className="flex justify-between items-center mb-3">
-                <div className="flex gap-4 text-[13px] text-text-secondary">
-                  <span className="flex items-center gap-1">👁 {post.views}</span>
-                  <span className="flex items-center gap-1">💬 {post.comments}</span>
+            <Link to={`/thread/${post.id}`} className="flex gap-6 max-md:flex-col">
+              {/* 左侧：文章信息 */}
+              <div className="flex-1 min-w-0">
+                <h2 className="text-xl font-semibold text-text-primary mb-3 leading-snug">
+                  {post.title}
+                </h2>
+
+                <div className="flex items-center gap-4 mb-3 text-[13px] flex-wrap">
+                  <span className="text-text-secondary">📅 {post.date}</span>
+                  <span className="flex items-center gap-1 text-text-secondary">👁 {post.views}</span>
+                  <span className="flex items-center gap-1 text-text-secondary">💬 {post.comments}</span>
                 </div>
-              </div>
 
-              <h2 className="text-xl font-semibold text-text-primary mb-3 leading-snug">
-                {post.title}
-              </h2>
-
-              <div className="flex justify-between items-center mb-3 text-[13px] max-md:flex-col max-md:items-start max-md:gap-2">
-                <span className="text-text-secondary">📅 {post.date}</span>
-                <div className="flex gap-2">
+                <div className="flex gap-2 mb-3">
                   {post.tags.map((tag, index) => (
                     <span key={index} className="text-accent-blue text-xs">
                       #{tag}
                     </span>
                   ))}
                 </div>
+
+                {post.description && (
+                  <p className="text-sm text-text-secondary leading-relaxed">
+                    {post.description}
+                  </p>
+                )}
               </div>
 
-              {post.description && (
-                <p className="text-sm text-text-secondary leading-relaxed">
-                  {post.description}
-                </p>
+              {/* 右侧：缩略图 */}
+              {post.thumbnail && (
+                <div className="flex-shrink-0">
+                  <img
+                    src={post.thumbnail}
+                    alt={post.title}
+                    className="w-[240px] h-[218px] object-cover rounded-lg max-md:w-full max-md:h-auto"
+                  />
+                </div>
               )}
             </Link>
           </article>
