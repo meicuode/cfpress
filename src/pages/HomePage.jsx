@@ -65,8 +65,11 @@ function HomePage() {
                 </div>
 
                 {post.description && (
-                  <p className="text-sm text-text-secondary leading-relaxed">
-                    {post.description}
+                  <p className="text-sm text-text-secondary leading-relaxed line-clamp-4">
+                    {post.description.length > 300
+                      ? post.description.slice(0, 300) + '...'
+                      : post.description
+                    }
                   </p>
                 )}
               </div>
