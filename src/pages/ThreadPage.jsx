@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import CommentForm from '../components/CommentForm'
 import CommentList from '../components/CommentList'
+import PostNavigation from '../components/PostNavigation'
 
 function ThreadPage() {
   const { id } = useParams()
@@ -22,6 +23,17 @@ function ThreadPage() {
       <h2>使用感受</h2>
       <p>实际使用中的体验...</p>
     `
+  }
+
+  // Mock navigation posts
+  const prevPost = {
+    id: '0',
+    title: '小米澎湃OS线过社区答题限制解锁BootLoader'
+  }
+
+  const nextPost = {
+    id: '2',
+    title: 'PagerMaid-Pyro 人形机器人使用指北'
   }
 
   const [comments, setComments] = useState([
@@ -78,7 +90,7 @@ function ThreadPage() {
   }
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-8 pb-8">
       <article className="bg-bg-card backdrop-blur-md rounded-xl border border-border p-10 max-md:p-6">
         <header className="mb-8 pb-5 border-b border-border">
           <h1 className="text-[28px] font-bold text-text-primary mb-4 leading-tight">
@@ -116,6 +128,8 @@ function ThreadPage() {
           <CommentForm onSubmit={handleCommentSubmit} />
         </div>
       </section>
+
+      <PostNavigation prevPost={prevPost} nextPost={nextPost} />
     </div>
   )
 }
