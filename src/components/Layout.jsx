@@ -12,7 +12,7 @@ function Layout() {
       <Navbar />
       <div className="flex max-w-[1200px] mx-auto mt-[90px] px-6 gap-8 w-full flex-1 max-[968px]:flex-col max-[968px]:px-5">
         <Sidebar />
-        <main className="flex-1 min-w-0">
+        <main className="flex-1 min-w-0 pb-8">
           <Outlet />
         </main>
       </div>

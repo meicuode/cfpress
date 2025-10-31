@@ -90,7 +90,7 @@ function ThreadPage() {
   }
 
   return (
-    <div className="flex flex-col gap-8 pb-8">
+    <div className="flex flex-col gap-8">
       <article className="bg-bg-card backdrop-blur-md rounded-xl border border-border p-10 max-md:p-6">
         <header className="mb-8 pb-5 border-b border-border">
           <h1 className="text-[28px] font-bold text-text-primary mb-4 leading-tight">
