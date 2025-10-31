@@ -143,3 +143,4 @@ All API endpoints are Cloudflare Pages Functions:
 - RSS feed generation
 - SEO optimization (meta tags, sitemap)
 - Image upload with Cloudflare Images
+- 当你改代码的时候给出文字说明你改了什么，为什么这么改

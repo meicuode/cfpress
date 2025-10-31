@@ -2,8 +2,8 @@ function Footer() {
   const currentYear = new Date().getFullYear()
 
   return (
-    <footer className="mt-auto py-10 px-5 bg-bg-secondary border-t border-border max-md:py-8">
-      <div className="max-w-[1400px] mx-auto text-center">
+    <footer className="mt-auto py-10 bg-bg-secondary border-t border-border max-md:py-8">
+      <div className="max-w-[1200px] mx-auto px-6 text-center max-md:px-5">
         <div className="mb-4">
           <p className="text-[13px] text-text-secondary mb-2">
             © {currentYear} 没有 没有梦想的成品. All Rights Reserved

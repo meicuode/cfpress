@@ -6,6 +6,7 @@ import TagPage from './pages/TagPage'
 import CategoryPage from './pages/CategoryPage'
 import AboutPage from './pages/AboutPage'
 import FriendsPage from './pages/FriendsPage'
+import SearchPage from './pages/SearchPage'
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Route path="/category" element={<CategoryPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/friends" element={<FriendsPage />} />
+          <Route path="/search" element={<SearchPage />} />
         </Route>
       </Routes>
     </Router>
