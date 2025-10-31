@@ -7,7 +7,7 @@ function PostNavigation({ prevPost, nextPost }) {
       {prevPost ? (
         <Link
           to={`/thread/${prevPost.id}`}
-          className="flex-1 flex items-center gap-3 px-4 py-3 text-text-primary bg-bg-card backdrop-blur-md rounded-xl border border-border hover:bg-white/5 transition-colors group"
+          className="flex-1 flex items-center gap-3 px-4 py-2 text-text-primary bg-bg-card backdrop-blur-md rounded-xl border border-border hover:bg-white/5 transition-colors group"
         >
           <span className="text-lg text-text-secondary group-hover:text-accent-blue transition-colors">
             ‹
@@ -15,7 +15,7 @@ function PostNavigation({ prevPost, nextPost }) {
           <span className="text-sm truncate">{prevPost.title}</span>
         </Link>
       ) : (
-        <div className="flex-1 px-4 py-3 text-text-secondary text-sm bg-bg-card backdrop-blur-md rounded-xl border border-border">
+        <div className="flex-1 px-4 py-2 text-text-secondary text-sm bg-bg-card backdrop-blur-md rounded-xl border border-border">
           没有更多文章了
         </div>
       )}
@@ -24,7 +24,7 @@ function PostNavigation({ prevPost, nextPost }) {
       {nextPost ? (
         <Link
           to={`/thread/${nextPost.id}`}
-          className="flex-1 flex items-center justify-end gap-3 px-4 py-3 text-text-primary bg-bg-card backdrop-blur-md rounded-xl border border-border hover:bg-white/5 transition-colors group text-right"
+          className="flex-1 flex items-center justify-end gap-3 px-4 py-2 text-text-primary bg-bg-card backdrop-blur-md rounded-xl border border-border hover:bg-white/5 transition-colors group text-right"
         >
           <span className="text-sm truncate">{nextPost.title}</span>
           <span className="text-lg text-text-secondary group-hover:text-accent-blue transition-colors">
@@ -32,7 +32,7 @@ function PostNavigation({ prevPost, nextPost }) {
           </span>
         </Link>
       ) : (
-        <div className="flex-1 px-4 py-3 text-text-secondary text-sm bg-bg-card backdrop-blur-md rounded-xl border border-border text-right">
+        <div className="flex-1 px-4 py-2 text-text-secondary text-sm bg-bg-card backdrop-blur-md rounded-xl border border-border text-right">
           没有更多文章了
         </div>
       )}
