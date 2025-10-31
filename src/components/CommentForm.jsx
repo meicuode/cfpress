@@ -53,38 +53,29 @@ function CommentForm({ onSubmit }) {
 
       {/* Form inputs */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-        <div>
-          <input
-            type="text"
-            value={formData.nickname}
-            onChange={(e) => setFormData({ ...formData, nickname: e.target.value })}
-            placeholder="昵称"
-            required
-            className="w-full px-4 py-2 bg-bg-card border border-border rounded-lg text-sm text-text-primary placeholder:text-text-secondary focus:outline-none focus:border-accent-blue"
-          />
-          <span className="text-xs text-text-secondary ml-2">必填</span>
-        </div>
-        <div>
-          <input
-            type="email"
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            placeholder="邮箱"
-            required
-            className="w-full px-4 py-2 bg-bg-card border border-border rounded-lg text-sm text-text-primary placeholder:text-text-secondary focus:outline-none focus:border-accent-blue"
-          />
-          <span className="text-xs text-text-secondary ml-2">必填</span>
-        </div>
-        <div>
-          <input
-            type="url"
-            value={formData.website}
-            onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-            placeholder="网址"
-            className="w-full px-4 py-2 bg-bg-card border border-border rounded-lg text-sm text-text-primary placeholder:text-text-secondary focus:outline-none focus:border-accent-blue"
-          />
-          <span className="text-xs text-text-secondary ml-2">选填</span>
-        </div>
+        <input
+          type="text"
+          value={formData.nickname}
+          onChange={(e) => setFormData({ ...formData, nickname: e.target.value })}
+          placeholder="昵称 *"
+          required
+          className="w-full px-4 py-2 bg-bg-card border border-border rounded-lg text-sm text-text-primary placeholder:text-text-secondary focus:outline-none focus:border-accent-blue"
+        />
+        <input
+          type="email"
+          value={formData.email}
+          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+          placeholder="邮箱 *"
+          required
+          className="w-full px-4 py-2 bg-bg-card border border-border rounded-lg text-sm text-text-primary placeholder:text-text-secondary focus:outline-none focus:border-accent-blue"
+        />
+        <input
+          type="url"
+          value={formData.website}
+          onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+          placeholder="网址"
+          className="w-full px-4 py-2 bg-bg-card border border-border rounded-lg text-sm text-text-primary placeholder:text-text-secondary focus:outline-none focus:border-accent-blue"
+        />
       </div>
 
       {/* Actions */}
