@@ -1,4 +1,7 @@
+import { useState } from 'react'
 import { useParams } from 'react-router-dom'
+import CommentForm from '../components/CommentForm'
+import CommentList from '../components/CommentList'
 
 function ThreadPage() {
   const { id } = useParams()
@@ -21,20 +24,58 @@ function ThreadPage() {
     `
   }
 
-  const comments = [
+  const [comments, setComments] = useState([
     {
       id: 1,
-      author: '用户A',
-      date: '2025-03-19',
-      content: '感谢分享，很有帮助！'
+      author: '五行缺失',
+      date: '2025-05-10',
+      content: '建站一直用的阿里云，华为云还真没有用过',
+      location: '加利福尼亚',
+      os: 'Windows 7',
+      browser: 'Chrome 86.0.4240.198',
+      likes: 3
     },
     {
       id: 2,
       author: '用户B',
       date: '2025-03-20',
-      content: '请问在哪里购买？'
+      content: '请问在哪里购买？',
+      location: '北京',
+      os: 'macOS',
+      browser: 'Safari 16.0',
+      likes: 0
     }
-  ]
+  ])
+
+  const handleCommentSubmit = (formData) => {
+    const newComment = {
+      id: comments.length + 1,
+      author: formData.nickname,
+      date: new Date().toISOString().split('T')[0],
+      content: formData.content,
+      location: '未知',
+      os: navigator.platform,
+      browser: navigator.userAgent.split(' ').pop(),
+      likes: 0
+    }
+    setComments([...comments, newComment])
+  }
+
+  const handleRefresh = () => {
+    console.log('Refresh comments')
+  }
+
+  const handleReply = (commentId) => {
+    console.log('Reply to comment:', commentId)
+  }
+
+  const handleLike = (commentId) => {
+    setComments(comments.map(comment =>
+      comment.id === commentId
+        ? { ...comment, likes: comment.likes + 1 }
+        : comment
+    ))
+  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -64,37 +105,15 @@ function ThreadPage() {
       </article>
 
       <section className="bg-bg-card backdrop-blur-md rounded-xl border border-border p-8 max-md:p-5">
-        <h2 className="text-xl font-semibold mb-5 text-text-primary">
-          评论 ({comments.length})
-        </h2>
-        <div className="flex flex-col gap-5 mb-8">
-          {comments.map((comment) => (
-            <div
-              key={comment.id}
-              className="p-4 bg-white/[0.03] rounded-lg border border-border"
-            >
-              <div className="flex justify-between mb-2">
-                <span className="font-semibold text-text-primary text-sm">
-                  {comment.author}
-                </span>
-                <span className="text-xs text-text-secondary">{comment.date}</span>
-              </div>
-              <p className="text-sm text-text-secondary leading-relaxed">
-                {comment.content}
-              </p>
-            </div>
-          ))}
-        </div>
+        <CommentList
+          comments={comments}
+          onRefresh={handleRefresh}
+          onReply={handleReply}
+          onLike={handleLike}
+        />
 
-        <div className="flex flex-col gap-4">
-          <textarea
-            className="w-full p-3 bg-white/5 border border-border rounded-lg text-text-primary text-sm resize-y focus:outline-none focus:border-accent-blue"
-            placeholder="写下你的评论..."
-            rows="4"
-          />
-          <button className="self-end px-6 py-2.5 bg-accent-blue text-white rounded-md text-sm font-medium transition-all hover:bg-[#3a8eef] hover:-translate-y-px">
-            发表评论
-          </button>
+        <div className="mt-8">
+          <CommentForm onSubmit={handleCommentSubmit} />
         </div>
       </section>
     </div>
