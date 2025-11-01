@@ -1,0 +1,8 @@
+name = "cfblog"
+compatibility_date = "2025-11-01"
+
+# D1 数据库绑定 (用于本地开发)
+[[d1_databases]]
+binding = "DB"
+database_name = "cfpress"
+database_id = "local-db"

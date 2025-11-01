@@ -16,7 +16,6 @@ dist
 # Wrangler
 .wrangler
 .dev.vars
-wrangler.toml
 
 # IDE
 .vscode/*
