@@ -1,4 +1,4 @@
-name = "cfblog"
+name = "cfpress"
 compatibility_date = "2025-11-01"
 
 # D1 数据库绑定 (用于本地开发)

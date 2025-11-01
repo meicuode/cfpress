@@ -42,9 +42,9 @@ npm run build            # Build for production
 npm run pages:deploy     # Deploy to Cloudflare Pages
 
 # Database
-npx wrangler d1 create cfblog-db                    # Create D1 database
-npx wrangler d1 execute cfblog-db --file=schema.sql # Initialize schema
-npx wrangler d1 execute cfblog-db --command="..."   # Run SQL command
+npx wrangler d1 create cfpress                    # Create D1 database
+npx wrangler d1 execute cfpress --file=schema.sql # Initialize schema
+npx wrangler d1 execute cfpress --command="..."   # Run SQL command
 ```
 
 ## Project Structure
@@ -103,9 +103,9 @@ The blog design is based on screenshots in `/designs/`:
 ## Cloudflare Pages Setup
 
 1. **Create D1 Database**:
-   - Run `npx wrangler d1 create cfblog-db`
+   - Run `npx wrangler d1 create cfpress`
    - Note the database ID
-   - Execute schema: `npx wrangler d1 execute cfblog-db --file=schema.sql`
+   - Execute schema: `npx wrangler d1 execute cfpress --file=schema.sql`
 
 2. **Deploy to Pages**:
    - Connect GitHub repo or use `wrangler pages deploy`
@@ -114,7 +114,7 @@ The blog design is based on screenshots in `/designs/`:
 
 3. **Bind D1 Database**:
    - In Pages Dashboard → Settings → Functions
-   - Add D1 binding: Variable name `DB`, select `cfblog-db`
+   - Add D1 binding: Variable name `DB`, select `cfpress`
 
 ## API Reference
 

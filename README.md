@@ -1,4 +1,4 @@
-# CFBlog - Cloudflare Pages 博客
+# CFPress - Cloudflare Pages 博客
 
 基于 Cloudflare Pages + D1 数据库 + React 构建的现代博客系统。
 
@@ -14,7 +14,7 @@
 ## 项目结构
 
 ```
-cfblog/
+cfpress/
 ├── src/                    # React 源代码
 │   ├── components/        # 可复用组件
 │   │   ├── Layout.jsx
@@ -65,10 +65,10 @@ npm run dev
 
 ```bash
 # 创建数据库
-npx wrangler d1 create cfblog-db
+npx wrangler d1 create cfpress
 
 # 初始化数据库结构
-npx wrangler d1 execute cfblog-db --file=./schema.sql
+npx wrangler d1 execute cfpress --file=./schema.sql
 ```
 
 ### 4. 构建和部署
@@ -91,7 +91,7 @@ npm run pages:deploy
 
 2. **D1 Database Binding**:
    - Variable name: `DB`
-   - D1 database: 选择创建的 `cfblog-db`
+   - D1 database: 选择创建的 `cfpress`
 
 ## API 端点
 

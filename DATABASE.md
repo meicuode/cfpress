@@ -290,13 +290,13 @@ navigation (1) ----< (N) navigation (self-referencing for hierarchy)
 ### 1. 创建D1数据库
 
 ```bash
-npx wrangler d1 create cfblog-db
+npx wrangler d1 create cfpress
 ```
 
 ### 2. 执行Schema脚本
 
 ```bash
-npx wrangler d1 execute cfblog-db --file=schema.sql
+npx wrangler d1 execute cfpress --file=schema.sql
 ```
 
 ### 3. 在Cloudflare Pages中绑定数据库
@@ -305,7 +305,7 @@ npx wrangler d1 execute cfblog-db --file=schema.sql
 2. 选择项目 → Settings → Functions
 3. 添加 D1 数据库绑定
    - Variable name: `DB`
-   - D1 database: `cfblog-db`
+   - D1 database: `cfpress`
 
 ## API接口设计建议
 
