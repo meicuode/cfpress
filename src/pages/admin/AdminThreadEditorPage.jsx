@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
 function AdminThreadEditorPage() {
@@ -6,37 +6,134 @@ function AdminThreadEditorPage() {
   const navigate = useNavigate()
   const isEditing = !!id
 
-  // Mock categories data
-  const categoriesList = [
-    'NAT64', 'VPS测评', '前端', '前端面试题', '华为云考试',
-    '教程', '未分类', '油猴插件', '测试', '游戏OS', '玩机',
-    '移动云电脑', '耳机', '语言学习', '转载', '闲聊', '黑苹果'
-  ]
+  // 状态管理
+  const [categoriesList, setCategoriesList] = useState([])
+  const [popularTags, setPopularTags] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
 
   const [thread, setThread] = useState({
     title: '',
     content: '',
-    categories: [],
-    tags: [],
+    categories: [], // 存储分类 ID
+    tags: [], // 存储标签名称
     status: 'draft'
   })
 
   const [newTag, setNewTag] = useState('')
 
-  const handleSubmit = (status) => {
-    const data = { ...thread, status }
-    console.log('Saving thread:', data)
-    // TODO: Implement API call to save thread
-    alert(status === 'publish' ? '文章已发布' : '草稿已保存')
-    navigate('/admin/threads')
+  // 加载分类和标签
+  useEffect(() => {
+    loadCategories()
+    loadPopularTags()
+
+    // 如果是编辑模式，加载文章数据
+    if (isEditing) {
+      loadThread()
+    }
+  }, [id])
+
+  const loadCategories = async () => {
+    try {
+      const response = await fetch('/api/categories')
+      const data = await response.json()
+      setCategoriesList(data.categories || [])
+    } catch (error) {
+      console.error('加载分类失败:', error)
+      alert('加载分类失败')
+    }
   }
 
-  const handleCategoryToggle = (category) => {
+  const loadPopularTags = async () => {
+    try {
+      const response = await fetch('/api/tags?order=popular')
+      const data = await response.json()
+      setPopularTags((data.tags || []).slice(0, 12))
+    } catch (error) {
+      console.error('加载标签失败:', error)
+    }
+  }
+
+  const loadThread = async () => {
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/threads/${id}`)
+      const data = await response.json()
+
+      if (response.ok) {
+        const threadData = data.thread
+        setThread({
+          title: threadData.title || '',
+          content: threadData.content || '',
+          categories: threadData.categories?.map(c => c.id) || [],
+          tags: threadData.tags?.map(t => t.name) || [],
+          status: threadData.status || 'draft'
+        })
+      } else {
+        alert('加载文章失败: ' + (data.error || '未知错误'))
+        navigate('/admin/threads')
+      }
+    } catch (error) {
+      console.error('加载文章失败:', error)
+      alert('加载文章失败: ' + error.message)
+      navigate('/admin/threads')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSubmit = async (status) => {
+    if (!thread.title.trim()) {
+      alert('请输入文章标题')
+      return
+    }
+    if (!thread.content.trim()) {
+      alert('请输入文章内容')
+      return
+    }
+
+    setSaving(true)
+    try {
+      const data = {
+        ...thread,
+        status,
+        author_id: 1 // TODO: 从认证系统获取
+      }
+
+      // 根据是否是编辑模式决定使用 POST 还是 PUT
+      const url = isEditing ? `/api/threads/${id}` : '/api/threads'
+      const method = isEditing ? 'PUT' : 'POST'
+
+      const response = await fetch(url, {
+        method: method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        alert(result.message || (status === 'publish' ? '文章已发布' : '草稿已保存'))
+        navigate('/admin/threads')
+      } else {
+        alert(result.error || '保存失败')
+      }
+    } catch (error) {
+      console.error('保存文章失败:', error)
+      alert('保存失败: ' + error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleCategoryToggle = (categoryId) => {
     setThread(prev => ({
       ...prev,
-      categories: prev.categories.includes(category)
-        ? prev.categories.filter(c => c !== category)
-        : [...prev.categories, category]
+      categories: prev.categories.includes(categoryId)
+        ? prev.categories.filter(c => c !== categoryId)
+        : [...prev.categories, categoryId]
     }))
   }
 
@@ -59,6 +156,13 @@ function AdminThreadEditorPage() {
 
   return (
     <div className="flex gap-6">
+      {/* 加载中状态 */}
+      {loading ? (
+        <div className="flex-1 bg-white rounded-lg shadow p-8">
+          <div className="text-center text-gray-500">加载中...</div>
+        </div>
+      ) : (
+        <>
       {/* Main editor area */}
       <div className="flex-1 bg-white rounded-lg shadow">
         {/* Top toolbar */}
@@ -81,18 +185,20 @@ function AdminThreadEditorPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => handleSubmit('draft')}
-              className="px-4 py-2 border border-gray-300 rounded text-sm hover:bg-gray-50"
+              disabled={saving}
+              className="px-4 py-2 border border-gray-300 rounded text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              保存草稿
+              {saving ? '保存中...' : '保存草稿'}
             </button>
             <button className="px-4 py-2 border border-gray-300 rounded text-sm hover:bg-gray-50">
               预览
             </button>
             <button
               onClick={() => handleSubmit('publish')}
-              className="px-4 py-2 bg-[#0073aa] text-white rounded text-sm hover:bg-[#005a87]"
+              disabled={saving}
+              className="px-4 py-2 bg-[#0073aa] text-white rounded text-sm hover:bg-[#005a87] disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              发布
+              {saving ? '发布中...' : '发布'}
             </button>
           </div>
         </div>
@@ -139,17 +245,21 @@ function AdminThreadEditorPage() {
 
           {/* Categories list */}
           <div className="max-h-[200px] overflow-y-auto border border-gray-200 rounded p-2">
-            {categoriesList.map((category) => (
-              <label key={category} className="flex items-center gap-2 py-1 hover:bg-gray-50 px-2 rounded">
-                <input
-                  type="checkbox"
-                  checked={thread.categories.includes(category)}
-                  onChange={() => handleCategoryToggle(category)}
-                  className="rounded"
-                />
-                <span className="text-sm text-[#23282d]">{category}</span>
-              </label>
-            ))}
+            {categoriesList.length === 0 ? (
+              <div className="text-sm text-gray-500 text-center py-2">加载中...</div>
+            ) : (
+              categoriesList.map((category) => (
+                <label key={category.id} className="flex items-center gap-2 py-1 hover:bg-gray-50 px-2 rounded">
+                  <input
+                    type="checkbox"
+                    checked={thread.categories.includes(category.id)}
+                    onChange={() => handleCategoryToggle(category.id)}
+                    className="rounded"
+                  />
+                  <span className="text-sm text-[#23282d]">{category.name}</span>
+                </label>
+              ))
+            )}
           </div>
 
           <button className="text-xs text-[#0073aa] hover:underline mt-2">
@@ -201,24 +311,29 @@ function AdminThreadEditorPage() {
           <div>
             <p className="text-xs font-medium text-[#646970] mb-2">最多使用</p>
             <div className="flex flex-wrap gap-2">
-              {['Dedirock', 'gaussDb', '开发者认证', '高斯db', '华为云', 'windows远程桌面',
-                '实用脚本', 'js基础', '面试题', 'NodeLoc插件', '7$', 'Dedirock'].map((tag) => (
-                <button
-                  key={tag}
-                  onClick={() => {
-                    if (!thread.tags.includes(tag)) {
-                      setThread(prev => ({ ...prev, tags: [...prev.tags, tag] }))
-                    }
-                  }}
-                  className="text-xs text-[#0073aa] hover:underline"
-                >
-                  {tag}
-                </button>
-              ))}
+              {popularTags.length === 0 ? (
+                <div className="text-xs text-gray-500">暂无常用标签</div>
+              ) : (
+                popularTags.map((tag) => (
+                  <button
+                    key={tag.id}
+                    onClick={() => {
+                      if (!thread.tags.includes(tag.name)) {
+                        setThread(prev => ({ ...prev, tags: [...prev.tags, tag.name] }))
+                      }
+                    }}
+                    className="text-xs text-[#0073aa] hover:underline"
+                  >
+                    {tag.name}
+                  </button>
+                ))
+              )}
             </div>
           </div>
         </div>
       </div>
+        </>
+      )}
     </div>
   )
 }

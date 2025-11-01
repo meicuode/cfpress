@@ -1,46 +1,65 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 
 function AdminThreadsPage() {
-  // Mock data - will be replaced with API calls
-  const [threads, setThreads] = useState([
-    {
-      id: 1,
-      title: '一年只需 10 HKD 的香港保号卡 hahaSIM 开箱测评',
-      author: 'skybreak',
-      categories: ['华为云考试'],
-      tags: ['gaussDb'],
-      comments: 0,
-      status: '已发布',
-      date: '2025-10-29 下午9:41'
-    },
-    {
-      id: 2,
-      title: '华为云技术精髓入门级开发者认证考试-实验考试通关教程',
-      author: 'skybreak',
-      categories: ['华为云考试'],
-      tags: ['开发者认证'],
-      comments: 0,
-      status: '已发布',
-      date: '2025-10-27 下午10:47'
-    },
-    {
-      id: 3,
-      title: '华为云GaussDB开发者考试实验指南',
-      author: 'skybreak',
-      categories: ['华为云考试', '教程'],
-      tags: ['华为云', '高斯db'],
-      comments: 0,
-      status: '已发布',
-      date: '2025-10-27 下午10:45'
-    }
-  ])
+  const [threads, setThreads] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [totalCount, setTotalCount] = useState(0)
 
   const [selectedThreads, setSelectedThreads] = useState([])
   const [bulkAction, setBulkAction] = useState('')
   const [filterDate, setFilterDate] = useState('all')
   const [filterCategory, setFilterCategory] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
+
+  // 加载文章列表
+  useEffect(() => {
+    loadThreads()
+  }, [])
+
+  const loadThreads = async () => {
+    setLoading(true)
+    try {
+      const response = await fetch('/api/threads?status=all&limit=100')
+      const data = await response.json()
+
+      if (response.ok) {
+        setThreads(data.threads || [])
+        setTotalCount(data.total || 0)
+      } else {
+        console.error('加载文章失败:', data.error)
+        alert('加载文章列表失败')
+      }
+    } catch (error) {
+      console.error('加载文章失败:', error)
+      alert('加载文章列表失败: ' + error.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // 格式化日期
+  const formatDate = (dateString) => {
+    if (!dateString) return '未发布'
+    const date = new Date(dateString)
+    return date.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+
+  // 获取状态文本
+  const getStatusText = (status) => {
+    const statusMap = {
+      'publish': '已发布',
+      'draft': '草稿',
+      'trash': '回收站'
+    }
+    return statusMap[status] || status
+  }
 
   const handleSelectAll = (e) => {
     if (e.target.checked) {
@@ -63,9 +82,26 @@ function AdminThreadsPage() {
     }
   }
 
-  const handleDeleteThread = (id) => {
-    if (confirm('确定要删除这篇文章吗？')) {
-      setThreads(threads.filter(t => t.id !== id))
+  const handleDeleteThread = async (id) => {
+    if (!confirm('确定要删除这篇文章吗？')) return
+
+    try {
+      const response = await fetch(`/api/threads/${id}`, {
+        method: 'DELETE'
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        alert('文章已删除')
+        // 重新加载列表
+        loadThreads()
+      } else {
+        alert('删除失败: ' + (data.error || '未知错误'))
+      }
+    } catch (error) {
+      console.error('删除文章失败:', error)
+      alert('删除失败: ' + error.message)
     }
   }
 
@@ -85,11 +121,11 @@ function AdminThreadsPage() {
 
         <div className="flex items-center gap-2 text-sm text-[#646970]">
           <Link to="/admin/threads" className="text-[#0073aa] hover:underline">
-            全部 ({threads.length})
+            全部 ({totalCount})
           </Link>
           <span>|</span>
           <Link to="/admin/threads?status=published" className="hover:underline">
-            已发布 ({threads.length})
+            已发布 ({threads.filter(t => t.status === 'publish').length})
           </Link>
         </div>
       </div>
@@ -174,7 +210,20 @@ function AdminThreadsPage() {
             </tr>
           </thead>
           <tbody>
-            {threads.map((thread) => (
+            {loading ? (
+              <tr>
+                <td colSpan="7" className="px-4 py-8 text-center text-gray-500">
+                  加载中...
+                </td>
+              </tr>
+            ) : threads.length === 0 ? (
+              <tr>
+                <td colSpan="7" className="px-4 py-8 text-center text-gray-500">
+                  暂无文章
+                </td>
+              </tr>
+            ) : (
+              threads.map((thread) => (
               <tr key={thread.id} className="border-b border-gray-200 hover:bg-gray-50">
                 <td className="px-4 py-3">
                   <input
@@ -212,17 +261,21 @@ function AdminThreadsPage() {
                     </div>
                   </div>
                 </td>
-                <td className="px-4 py-3 text-sm text-[#646970]">{thread.author}</td>
+                <td className="px-4 py-3 text-sm text-[#646970]">{thread.author_name || 'Unknown'}</td>
                 <td className="px-4 py-3 text-sm text-[#0073aa]">
-                  {thread.categories.join(', ')}
+                  {thread.categories && thread.categories.length > 0
+                    ? thread.categories.map(c => c.name).join(', ')
+                    : '未分类'}
                 </td>
                 <td className="px-4 py-3 text-sm text-[#0073aa]">
-                  {thread.tags.join(', ')}
+                  {thread.tags && thread.tags.length > 0
+                    ? thread.tags.map(t => t.name).join(', ')
+                    : '—'}
                 </td>
                 <td className="px-4 py-3 text-center text-sm text-[#646970]">
-                  {thread.comments > 0 ? (
+                  {thread.comment_count > 0 ? (
                     <Link to={`/admin/comments?thread=${thread.id}`} className="hover:text-[#0073aa]">
-                      {thread.comments}
+                      {thread.comment_count}
                     </Link>
                   ) : (
                     '—'
@@ -230,19 +283,20 @@ function AdminThreadsPage() {
                 </td>
                 <td className="px-4 py-3 text-sm text-[#646970]">
                   <div className="flex flex-col gap-1">
-                    <span>{thread.status}</span>
-                    <span className="text-xs">{thread.date}</span>
+                    <span>{getStatusText(thread.status)}</span>
+                    <span className="text-xs">{formatDate(thread.published_at || thread.created_at)}</span>
                   </div>
                 </td>
               </tr>
-            ))}
+            ))
+            )}
           </tbody>
         </table>
       </div>
 
       {/* Footer */}
       <div className="p-4 border-t border-gray-200 flex items-center justify-between">
-        <div className="text-sm text-[#646970]">共 {threads.length} 项</div>
+        <div className="text-sm text-[#646970]">共 {totalCount} 项</div>
       </div>
     </div>
   )
