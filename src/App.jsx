@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { ThemeProvider } from './contexts/ThemeContext'
+import { ToastProvider } from './contexts/ToastContext'
 import Layout from './components/Layout'
 import AdminLayout from './components/AdminLayout'
 import HomePage from './pages/HomePage'
@@ -18,32 +19,34 @@ import AdminDashboardPage from './pages/admin/AdminDashboardPage'
 function App() {
   return (
     <ThemeProvider>
-      <Router>
-        <Routes>
-          {/* Public routes */}
-          <Route path="/" element={<Layout />}>
-            <Route index element={<HomePage />} />
-            <Route path="/thread/:id" element={<ThreadPage />} />
-            <Route path="/tag/:tagName" element={<TagPage />} />
-            <Route path="/category" element={<CategoryPage />} />
-            <Route path="/about" element={<AboutPage />} />
-            <Route path="/friends" element={<FriendsPage />} />
-            <Route path="/search" element={<SearchPage />} />
-          </Route>
+      <ToastProvider>
+        <Router>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/" element={<Layout />}>
+              <Route index element={<HomePage />} />
+              <Route path="/thread/:id" element={<ThreadPage />} />
+              <Route path="/tag/:tagName" element={<TagPage />} />
+              <Route path="/category" element={<CategoryPage />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/friends" element={<FriendsPage />} />
+              <Route path="/search" element={<SearchPage />} />
+            </Route>
 
-          {/* Admin routes */}
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<AdminDashboardPage />} />
-            <Route path="threads" element={<AdminThreadsPage />} />
-            <Route path="threads/new" element={<AdminThreadEditorPage />} />
-            <Route path="threads/:id/edit" element={<AdminThreadEditorPage />} />
-            <Route path="comments" element={<AdminCommentsPage />} />
-            <Route path="settings" element={<AdminSettingsPage />} />
-            <Route path="settings/general" element={<AdminSettingsPage />} />
-            <Route path="settings/site" element={<AdminSettingsPage />} />
-          </Route>
-        </Routes>
-      </Router>
+            {/* Admin routes */}
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<AdminDashboardPage />} />
+              <Route path="threads" element={<AdminThreadsPage />} />
+              <Route path="threads/new" element={<AdminThreadEditorPage />} />
+              <Route path="threads/:id/edit" element={<AdminThreadEditorPage />} />
+              <Route path="comments" element={<AdminCommentsPage />} />
+              <Route path="settings" element={<AdminSettingsPage />} />
+              <Route path="settings/general" element={<AdminSettingsPage />} />
+              <Route path="settings/site" element={<AdminSettingsPage />} />
+            </Route>
+          </Routes>
+        </Router>
+      </ToastProvider>
     </ThemeProvider>
   )
 }

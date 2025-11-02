@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
+import { useToast } from '../contexts/ToastContext'
 import CommentForm from '../components/CommentForm'
 import CommentList from '../components/CommentList'
 import PostNavigation from '../components/PostNavigation'
 
 function ThreadPage() {
   const { id } = useParams()
+  const toast = useToast()
   const [thread, setThread] = useState(null)
   const [comments, setComments] = useState([])
   const [loading, setLoading] = useState(true)
@@ -89,13 +91,13 @@ function ThreadPage() {
         await loadComments()
         // 重新加载文章以更新评论数
         await loadThread()
-        alert('评论发布成功！')
+        toast.success('评论发布成功！')
       } else {
-        alert(data.error || '评论发布失败')
+        toast.error(data.error || '评论发布失败')
       }
     } catch (err) {
       console.error('发布评论失败:', err)
-      alert('评论发布失败')
+      toast.error('评论发布失败')
     }
   }
 
