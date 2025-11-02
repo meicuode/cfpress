@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import CommentForm from '../components/CommentForm'
 import CommentList from '../components/CommentList'
@@ -6,87 +6,129 @@ import PostNavigation from '../components/PostNavigation'
 
 function ThreadPage() {
   const { id } = useParams()
+  const [thread, setThread] = useState(null)
+  const [comments, setComments] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-  // Mock data
-  const post = {
-    id,
-    title: '一年只需 10 HKD 的香港保号卡 hahaSIM 开箱测评',
-    date: '2025-03-18',
-    views: 770,
-    comments: 5,
-    tags: ['分享', '折腾', '保号卡'],
-    content: `
-      <p>本周六凌晨正好看了 10 传后，开着窗门看到了北极光...</p>
-      <p>这是一篇关于 hahaSIM 的详细测评文章。</p>
-      <h2>开箱体验</h2>
-      <p>收到卡片后的第一印象...</p>
-      <h2>使用感受</h2>
-      <p>实际使用中的体验...</p>
-    `
+  // 格式化日期
+  const formatDate = (dateString) => {
+    if (!dateString) return ''
+    const date = new Date(dateString)
+    return date.toLocaleDateString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).replace(/\//g, '-')
   }
 
-  // Mock navigation posts
-  const prevPost = {
-    id: '0',
-    title: '小米澎湃OS线过社区答题限制解锁BootLoader'
-  }
+  // 加载文章详情
+  useEffect(() => {
+    loadThread()
+  }, [id])
 
-  const nextPost = {
-    id: '2',
-    title: 'PagerMaid-Pyro 人形机器人使用指北'
-  }
-
-  const [comments, setComments] = useState([
-    {
-      id: 1,
-      author: '五行缺失',
-      date: '2025-05-10',
-      content: '建站一直用的阿里云，华为云还真没有用过',
-      location: '加利福尼亚',
-      os: 'Windows 7',
-      browser: 'Chrome 86.0.4240.198',
-      likes: 3
-    },
-    {
-      id: 2,
-      author: '用户B',
-      date: '2025-03-20',
-      content: '请问在哪里购买？',
-      location: '北京',
-      os: 'macOS',
-      browser: 'Safari 16.0',
-      likes: 0
+  // 加载评论
+  useEffect(() => {
+    if (id) {
+      loadComments()
     }
-  ])
+  }, [id])
 
-  const handleCommentSubmit = (formData) => {
-    const newComment = {
-      id: comments.length + 1,
-      author: formData.nickname,
-      date: new Date().toISOString().split('T')[0],
-      content: formData.content,
-      location: '未知',
-      os: navigator.platform,
-      browser: navigator.userAgent.split(' ').pop(),
-      likes: 0
+  const loadThread = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch(`/api/threads/${id}`)
+      const data = await response.json()
+
+      if (response.ok) {
+        setThread(data.thread)
+      } else {
+        setError(data.error || '加载文章失败')
+      }
+    } catch (err) {
+      console.error('加载文章失败:', err)
+      setError('加载文章失败')
+    } finally {
+      setLoading(false)
     }
-    setComments([...comments, newComment])
+  }
+
+  const loadComments = async () => {
+    try {
+      const response = await fetch(`/api/comments?thread_id=${id}`)
+      const data = await response.json()
+
+      if (response.ok) {
+        setComments(data.comments || [])
+      }
+    } catch (err) {
+      console.error('加载评论失败:', err)
+    }
+  }
+
+  const handleCommentSubmit = async (formData) => {
+    try {
+      const response = await fetch('/api/comments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          thread_id: id,
+          author_name: formData.nickname,
+          author_email: formData.email,
+          author_website: formData.website || null,
+          content: formData.content,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        // 重新加载评论列表
+        await loadComments()
+        // 重新加载文章以更新评论数
+        await loadThread()
+        alert('评论发布成功！')
+      } else {
+        alert(data.error || '评论发布失败')
+      }
+    } catch (err) {
+      console.error('发布评论失败:', err)
+      alert('评论发布失败')
+    }
   }
 
   const handleRefresh = () => {
-    console.log('Refresh comments')
+    loadComments()
   }
 
   const handleReply = (commentId) => {
     console.log('Reply to comment:', commentId)
+    // TODO: 实现回复功能
   }
 
   const handleLike = (commentId) => {
-    setComments(comments.map(comment =>
-      comment.id === commentId
-        ? { ...comment, likes: comment.likes + 1 }
-        : comment
-    ))
+    console.log('Like comment:', commentId)
+    // TODO: 实现点赞功能 API
+  }
+
+  // 加载状态
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-20">
+        <div className="text-text-secondary">加载中...</div>
+      </div>
+    )
+  }
+
+  // 错误状态
+  if (error || !thread) {
+    return (
+      <div className="flex justify-center items-center py-20">
+        <div className="text-red-400">{error || '文章不存在'}</div>
+      </div>
+    )
   }
 
   return (
@@ -94,31 +136,53 @@ function ThreadPage() {
       <article className="bg-bg-card backdrop-blur-md rounded-xl border border-border p-10 max-md:p-6">
         <header className="mb-8 pb-5 border-b border-border">
           <h1 className="text-[28px] font-bold text-text-primary mb-4 leading-tight">
-            {post.title}
+            {thread.title}
           </h1>
           <div className="flex gap-5 text-[13px] text-text-secondary mb-3">
-            <span>📅 {post.date}</span>
-            <span>👁 {post.views}</span>
-            <span>💬 {post.comments}</span>
+            <span>📅 {formatDate(thread.published_at || thread.created_at)}</span>
+            <span>👁 {thread.view_count || 0}</span>
+            <span>💬 {thread.comment_count || 0}</span>
           </div>
-          <div className="flex gap-2.5">
-            {post.tags.map((tag, index) => (
-              <span key={index} className="text-accent-blue text-[13px]">
-                #{tag}
-              </span>
-            ))}
-          </div>
+          {thread.tags && thread.tags.length > 0 && (
+            <div className="flex gap-2.5 flex-wrap">
+              {thread.tags.map((tag) => (
+                <span key={tag.id} className="text-accent-blue text-[13px]">
+                  #{tag.name}
+                </span>
+              ))}
+            </div>
+          )}
+          {thread.categories && thread.categories.length > 0 && (
+            <div className="flex gap-2.5 flex-wrap mt-2">
+              {thread.categories.map((category) => (
+                <span key={category.id} className="text-text-secondary text-[13px] px-2 py-0.5 bg-bg-primary/50 rounded">
+                  {category.name}
+                </span>
+              ))}
+            </div>
+          )}
         </header>
 
         <div
-          className="text-base leading-loose text-text-primary [&_h2]:text-[22px] [&_h2]:my-8 [&_h2]:mb-4 [&_h2]:text-text-primary [&_p]:mb-4"
-          dangerouslySetInnerHTML={{ __html: post.content }}
-        />
+          className="text-base leading-loose text-text-primary [&_h2]:text-[22px] [&_h2]:my-8 [&_h2]:mb-4 [&_h2]:text-text-primary [&_p]:mb-4 whitespace-pre-wrap"
+          style={{ wordBreak: 'break-word' }}
+        >
+          {thread.content}
+        </div>
       </article>
 
       <section className="bg-bg-card backdrop-blur-md rounded-xl border border-border p-8 max-md:p-5">
         <CommentList
-          comments={comments}
+          comments={comments.map(comment => ({
+            id: comment.id,
+            author: comment.author_name,
+            date: formatDate(comment.created_at),
+            content: comment.content,
+            location: comment.location || '未知',
+            os: comment.os || '未知',
+            browser: comment.browser || '未知',
+            likes: comment.like_count || 0
+          }))}
           onRefresh={handleRefresh}
           onReply={handleReply}
           onLike={handleLike}
@@ -129,7 +193,8 @@ function ThreadPage() {
         </div>
       </section>
 
-      <PostNavigation prevPost={prevPost} nextPost={nextPost} />
+      {/* TODO: 实现上一篇/下一篇导航 */}
+      {/* <PostNavigation prevPost={prevPost} nextPost={nextPost} /> */}
     </div>
   )
 }
