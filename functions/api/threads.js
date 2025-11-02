@@ -64,11 +64,15 @@ export async function onRequestGet(context) {
 
     // 获取总数
     let countQuery = 'SELECT COUNT(*) as total FROM threads';
-    if (conditions.length > 0) {
-      countQuery += ' WHERE ' + conditions.slice(0, -2).join(' AND ');
+    const countParams = [];
+
+    if (status !== 'all') {
+      countQuery += ' WHERE status = ?';
+      countParams.push(status);
     }
+
     const { results: countResult } = await env.DB.prepare(countQuery)
-      .bind(...params.slice(0, -2))
+      .bind(...countParams)
       .all();
     const total = countResult[0].total;
 
@@ -205,7 +209,7 @@ export async function onRequestPost(context) {
           // 创建新标签
           const tagSlug = tagName.toLowerCase()
             .replace(/[^\w\s-]/g, '')
-            .replace(/\s+/g, '-');
+            .replace(/\s+/g, '-') || `tag-${Date.now()}-${Math.random().toString(36).substring(7)}`;
 
           const tagResult = await env.DB.prepare(`
             INSERT INTO tags (name, slug, thread_count)

@@ -84,6 +84,29 @@ export async function onRequestGet(context) {
         PRIMARY KEY (thread_id, tag_id)
       );
 
+      CREATE TABLE IF NOT EXISTS comments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        thread_id INTEGER NOT NULL,
+        parent_id INTEGER,
+        user_id INTEGER,
+        author_name TEXT NOT NULL,
+        author_email TEXT NOT NULL,
+        author_website TEXT,
+        author_avatar TEXT,
+        content TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
+        ip_address TEXT,
+        user_agent TEXT,
+        location TEXT,
+        os TEXT,
+        browser TEXT,
+        device TEXT,
+        like_count INTEGER NOT NULL DEFAULT 0,
+        reply_count INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT
+      );
+
       INSERT OR IGNORE INTO users (id, username, email, password_hash, display_name, role) VALUES
         (1, 'admin', 'admin@example.com', '$2a$10$dummyhash', 'Administrator', 'admin'),
         (2, 'admin123', 'admin123@example.com', 'admin456', '系统管理员', 'admin');

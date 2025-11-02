@@ -180,7 +180,7 @@ export async function onRequestPut(context) {
         tagId = existingTags[0].id;
       } else {
         // 创建新标签
-        const slug = tagName.toLowerCase().replace(/\s+/g, '-');
+        const slug = tagName.toLowerCase().replace(/\s+/g, '-') || `tag-${Date.now()}-${Math.random().toString(36).substring(7)}`;
         const result = await env.DB.prepare(
           'INSERT INTO tags (name, slug) VALUES (?, ?) RETURNING id'
         ).bind(tagName, slug).first();
