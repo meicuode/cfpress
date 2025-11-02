@@ -1,6 +1,12 @@
 import { Link } from 'react-router-dom'
+import { useEffect } from 'react'
 
 function CategoryPage() {
+  // 设置页面标题
+  useEffect(() => {
+    document.title = '归档 - CFPress'
+  }, [])
+
   const archives = [
     {
       year: 2025,

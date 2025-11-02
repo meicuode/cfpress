@@ -1,7 +1,13 @@
 import { useParams, Link } from 'react-router-dom'
+import { useEffect } from 'react'
 
 function TagPage() {
   const { tagName } = useParams()
+
+  // 设置页面标题
+  useEffect(() => {
+    document.title = `#${tagName} - CFPress`
+  }, [tagName])
 
   const posts = [
     { id: 1, title: '文章标题 1', date: '2025-03-18' },

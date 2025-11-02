@@ -1,4 +1,11 @@
+import { useEffect } from 'react'
+
 function FriendsPage() {
+  // 设置页面标题
+  useEffect(() => {
+    document.title = '友情链接 - CFPress'
+  }, [])
+
   const friends = [
     {
       name: '友链站点 1',

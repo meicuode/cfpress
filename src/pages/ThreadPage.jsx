@@ -37,6 +37,17 @@ function ThreadPage() {
     }
   }, [id])
 
+  // 设置页面标题
+  useEffect(() => {
+    if (thread) {
+      document.title = `${thread.title} - CFPress`
+    }
+    // 组件卸载时恢复默认标题
+    return () => {
+      document.title = 'CFPress'
+    }
+  }, [thread])
+
   const loadThread = async () => {
     try {
       setLoading(true)

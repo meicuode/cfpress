@@ -8,6 +8,11 @@ function HomePage() {
   const [totalCount, setTotalCount] = useState(0)
   const limit = 10 // 每页显示10篇文章
 
+  // 设置页面标题
+  useEffect(() => {
+    document.title = 'CFPress - 首页'
+  }, [])
+
   useEffect(() => {
     loadThreads()
   }, [page])

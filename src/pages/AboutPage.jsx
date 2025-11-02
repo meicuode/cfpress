@@ -1,4 +1,11 @@
+import { useEffect } from 'react'
+
 function AboutPage() {
+  // 设置页面标题
+  useEffect(() => {
+    document.title = '关于 - CFPress'
+  }, [])
+
   return (
     <div className="bg-bg-card backdrop-blur-md rounded-xl border border-border p-10 max-md:p-6">
       <div className="mb-8 pb-5 border-b border-border">
