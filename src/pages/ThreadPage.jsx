@@ -12,6 +12,7 @@ function ThreadPage() {
   const [comments, setComments] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [replyTo, setReplyTo] = useState(null) // 回复的评论 ID
 
   // 格式化日期
   const formatDate = (dateString) => {
@@ -77,6 +78,7 @@ function ThreadPage() {
         },
         body: JSON.stringify({
           thread_id: id,
+          parent_id: replyTo, // 如果是回复，传递 parent_id
           author_name: formData.nickname,
           author_email: formData.email,
           author_website: formData.website || null,
@@ -91,7 +93,9 @@ function ThreadPage() {
         await loadComments()
         // 重新加载文章以更新评论数
         await loadThread()
-        toast.success('评论发布成功！')
+        // 清除回复状态
+        setReplyTo(null)
+        toast.success(replyTo ? '回复发布成功！' : '评论发布成功！')
       } else {
         toast.error(data.error || '评论发布失败')
       }
@@ -106,13 +110,42 @@ function ThreadPage() {
   }
 
   const handleReply = (commentId) => {
-    console.log('Reply to comment:', commentId)
-    // TODO: 实现回复功能
+    setReplyTo(commentId)
+    // 滚动到评论表单
+    const formElement = document.querySelector('#comment-form')
+    if (formElement) {
+      formElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+    toast.info('正在回复评论...')
   }
 
-  const handleLike = (commentId) => {
-    console.log('Like comment:', commentId)
-    // TODO: 实现点赞功能 API
+  const handleCancelReply = () => {
+    setReplyTo(null)
+  }
+
+  const handleLike = async (commentId) => {
+    try {
+      const response = await fetch(`/api/comments/${commentId}/like`, {
+        method: 'POST',
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        // 更新本地评论的点赞数
+        setComments(comments.map(comment =>
+          comment.id === commentId
+            ? { ...comment, like_count: data.likeCount }
+            : comment
+        ))
+        toast.success('点赞成功！')
+      } else {
+        toast.error(data.error || '点赞失败')
+      }
+    } catch (err) {
+      console.error('点赞失败:', err)
+      toast.error('点赞失败')
+    }
   }
 
   // 加载状态
@@ -177,8 +210,10 @@ function ThreadPage() {
         <CommentList
           comments={comments.map(comment => ({
             id: comment.id,
+            parent_id: comment.parent_id,
             author: comment.author_name,
             date: formatDate(comment.created_at),
+            created_at: comment.created_at, // 传递原始时间戳用于排序
             content: comment.content,
             location: comment.location || '未知',
             os: comment.os || '未知',
@@ -190,7 +225,20 @@ function ThreadPage() {
           onLike={handleLike}
         />
 
-        <div className="mt-8">
+        <div id="comment-form" className="mt-8">
+          {replyTo && (
+            <div className="mb-4 p-3 bg-accent-blue/10 border border-accent-blue/30 rounded-lg flex items-center justify-between">
+              <span className="text-text-primary text-sm">
+                正在回复评论 #{replyTo}
+              </span>
+              <button
+                onClick={handleCancelReply}
+                className="text-text-secondary hover:text-text-primary text-sm transition-colors"
+              >
+                取消回复
+              </button>
+            </div>
+          )}
           <CommentForm onSubmit={handleCommentSubmit} />
         </div>
       </section>
