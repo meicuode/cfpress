@@ -238,7 +238,7 @@ function AdminThreadEditorPage() {
   }
 
   return (
-    <div className="flex gap-6">
+    <div className="flex gap-1 h-[calc(100vh-62px)]">
       {/* 加载中状态 */}
       {loading ? (
         <div className="flex-1 bg-white rounded-lg shadow p-8">
@@ -247,9 +247,9 @@ function AdminThreadEditorPage() {
       ) : (
         <>
       {/* Main editor area */}
-      <div className="flex-1 bg-white rounded-lg shadow">
+      <div className="flex-1 bg-white rounded-lg shadow flex flex-col">
         {/* Top toolbar */}
-        <div className="border-b border-gray-200 p-4 flex items-center justify-between">
+        <div className="border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
             <button className="w-10 h-10 flex items-center justify-center bg-[#0073aa] text-white rounded hover:bg-[#005a87]">
               ➕
@@ -287,7 +287,7 @@ function AdminThreadEditorPage() {
         </div>
 
         {/* Title input */}
-        <div className="p-8">
+        <div className="p-8 flex-shrink-0">
           <input
             type="text"
             value={thread.title}
@@ -298,12 +298,12 @@ function AdminThreadEditorPage() {
         </div>
 
         {/* Content editor */}
-        <div className="px-8 pb-8">
+        <div className="px-0.5 pb-2 flex-1 flex flex-col">
           <textarea
             value={thread.content}
             onChange={(e) => setThread({ ...thread, content: e.target.value })}
             placeholder="输入 / 来选择一个区块"
-            className="w-full min-h-[400px] text-base text-[#23282d] border border-gray-200 rounded p-4 outline-none resize-none"
+            className="w-full flex-1 text-base text-[#23282d] border-t border-gray-200 border-l-0 border-r-0 border-b-0 rounded-none p-4 outline-none resize-none"
           />
         </div>
       </div>

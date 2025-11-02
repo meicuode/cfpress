@@ -18,7 +18,7 @@ function AdminLayout() {
         </div>
 
         {/* Content area */}
-        <div className="p-6">
+        <div className="p-2">
           <Outlet />
         </div>
       </main>
