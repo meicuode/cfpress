@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { useToast } from '../../contexts/ToastContext'
+import { useConfirm } from '../../contexts/ConfirmContext'
 
 function AdminThreadsPage() {
   const location = useLocation()
+  const toast = useToast()
+  const confirm = useConfirm()
   const [threads, setThreads] = useState([])
   const [loading, setLoading] = useState(true)
   const [totalCount, setTotalCount] = useState(0)
@@ -76,11 +80,11 @@ function AdminThreadsPage() {
         setTotalCount(data.total || 0)
       } else {
         console.error('加载文章失败:', data.error)
-        alert('加载文章列表失败')
+        toast.error('加载文章列表失败')
       }
     } catch (error) {
       console.error('加载文章失败:', error)
-      alert('加载文章列表失败: ' + error.message)
+      toast.error('加载文章列表失败: ' + error.message)
     } finally {
       setLoading(false)
     }
@@ -125,24 +129,32 @@ function AdminThreadsPage() {
 
   const handleBulkApply = async () => {
     if (!bulkAction || selectedThreads.length === 0) {
-      alert('请选择操作和文章')
+      toast.warning('请选择操作和文章')
       return
     }
 
     if (bulkAction === 'delete') {
-      if (!confirm(`确定要删除选中的 ${selectedThreads.length} 篇文章吗？`)) return
+      const confirmed = await confirm({
+        title: '批量删除文章',
+        message: `确定要删除选中的 ${selectedThreads.length} 篇文章吗？`,
+        confirmText: '删除',
+        cancelText: '取消',
+        type: 'danger'
+      })
+
+      if (!confirmed) return
 
       try {
         const promises = selectedThreads.map(id =>
           fetch(`/api/threads/${id}`, { method: 'DELETE' })
         )
         await Promise.all(promises)
-        alert('批量删除成功')
+        toast.success('批量删除成功')
         setSelectedThreads([])
         loadThreads({ status: filterStatus })
       } catch (error) {
         console.error('批量删除失败:', error)
-        alert('批量删除失败')
+        toast.error('批量删除失败')
       }
     }
   }
@@ -177,7 +189,15 @@ function AdminThreadsPage() {
   }
 
   const handleDeleteThread = async (id) => {
-    if (!confirm('确定要删除这篇文章吗？')) return
+    const confirmed = await confirm({
+      title: '删除文章',
+      message: '确定要删除这篇文章吗？',
+      confirmText: '删除',
+      cancelText: '取消',
+      type: 'danger'
+    })
+
+    if (!confirmed) return
 
     try {
       const response = await fetch(`/api/threads/${id}`, {
@@ -187,15 +207,15 @@ function AdminThreadsPage() {
       const data = await response.json()
 
       if (response.ok) {
-        alert('文章已删除')
+        toast.success('文章已删除')
         // 重新加载列表
         loadThreads({ status: filterStatus })
       } else {
-        alert('删除失败: ' + (data.error || '未知错误'))
+        toast.error('删除失败: ' + (data.error || '未知错误'))
       }
     } catch (error) {
       console.error('删除文章失败:', error)
-      alert('删除失败: ' + error.message)
+      toast.error('删除失败: ' + error.message)
     }
   }
 

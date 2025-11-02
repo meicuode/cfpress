@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { ToastProvider } from './contexts/ToastContext'
+import { ConfirmProvider } from './contexts/ConfirmContext'
 import Layout from './components/Layout'
 import AdminLayout from './components/AdminLayout'
 import HomePage from './pages/HomePage'
@@ -20,7 +21,8 @@ function App() {
   return (
     <ThemeProvider>
       <ToastProvider>
-        <Router>
+        <ConfirmProvider>
+          <Router>
           <Routes>
             {/* Public routes */}
             <Route path="/" element={<Layout />}>
@@ -46,6 +48,7 @@ function App() {
             </Route>
           </Routes>
         </Router>
+        </ConfirmProvider>
       </ToastProvider>
     </ThemeProvider>
   )

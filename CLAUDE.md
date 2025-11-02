@@ -144,3 +144,4 @@ All API endpoints are Cloudflare Pages Functions:
 - SEO optimization (meta tags, sitemap)
 - Image upload with Cloudflare Images
 - 当你改代码的时候给出文字说明你改了什么，为什么这么改
+- 弹出消息都使用吐司的方式

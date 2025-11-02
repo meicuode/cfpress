@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useToast } from '../../contexts/ToastContext'
+import { useConfirm } from '../../contexts/ConfirmContext'
 
 function AdminThreadEditorPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const toast = useToast()
+  const confirm = useConfirm()
   const isEditing = !!id
 
   // 状态管理
@@ -21,6 +25,8 @@ function AdminThreadEditorPage() {
   })
 
   const [newTag, setNewTag] = useState('')
+  const [showAddCategory, setShowAddCategory] = useState(false)
+  const [newCategoryName, setNewCategoryName] = useState('')
 
   // 加载分类和标签
   useEffect(() => {
@@ -40,7 +46,7 @@ function AdminThreadEditorPage() {
       setCategoriesList(data.categories || [])
     } catch (error) {
       console.error('加载分类失败:', error)
-      alert('加载分类失败')
+      toast.error('加载分类失败')
     }
   }
 
@@ -70,12 +76,12 @@ function AdminThreadEditorPage() {
           status: threadData.status || 'draft'
         })
       } else {
-        alert('加载文章失败: ' + (data.error || '未知错误'))
+        toast.error('加载文章失败: ' + (data.error || '未知错误'))
         navigate('/admin/threads')
       }
     } catch (error) {
       console.error('加载文章失败:', error)
-      alert('加载文章失败: ' + error.message)
+      toast.error('加载文章失败: ' + error.message)
       navigate('/admin/threads')
     } finally {
       setLoading(false)
@@ -84,11 +90,11 @@ function AdminThreadEditorPage() {
 
   const handleSubmit = async (status) => {
     if (!thread.title.trim()) {
-      alert('请输入文章标题')
+      toast.warning('请输入文章标题')
       return
     }
     if (!thread.content.trim()) {
-      alert('请输入文章内容')
+      toast.warning('请输入文章内容')
       return
     }
 
@@ -115,14 +121,14 @@ function AdminThreadEditorPage() {
       const result = await response.json()
 
       if (response.ok) {
-        alert(result.message || (status === 'publish' ? '文章已发布' : '草稿已保存'))
+        toast.success(result.message || (status === 'publish' ? '文章已发布' : '草稿已保存'))
         navigate('/admin/threads')
       } else {
-        alert(result.error || '保存失败')
+        toast.error(result.error || '保存失败')
       }
     } catch (error) {
       console.error('保存文章失败:', error)
-      alert('保存失败: ' + error.message)
+      toast.error('保存失败: ' + error.message)
     } finally {
       setSaving(false)
     }
@@ -152,6 +158,83 @@ function AdminThreadEditorPage() {
       ...prev,
       tags: prev.tags.filter(t => t !== tag)
     }))
+  }
+
+  const handleAddCategory = async () => {
+    if (!newCategoryName.trim()) {
+      toast.warning('请输入分类名称')
+      return
+    }
+
+    try {
+      const response = await fetch('/api/categories', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: newCategoryName.trim()
+        }),
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        toast.success('分类创建成功')
+        setNewCategoryName('')
+        setShowAddCategory(false)
+        // 重新加载分类列表
+        await loadCategories()
+        // 自动选中新创建的分类
+        if (result.id) {
+          setThread(prev => ({
+            ...prev,
+            categories: [...prev.categories, result.id]
+          }))
+        }
+      } else {
+        toast.error(result.error || '创建分类失败')
+      }
+    } catch (error) {
+      console.error('创建分类失败:', error)
+      toast.error('创建分类失败: ' + error.message)
+    }
+  }
+
+  const handleDeleteCategory = async (categoryId, categoryName) => {
+    const confirmed = await confirm({
+      title: '删除分类',
+      message: `确定要删除分类"${categoryName}"吗？`,
+      confirmText: '删除',
+      cancelText: '取消',
+      type: 'danger'
+    })
+
+    if (!confirmed) return
+
+    try {
+      const response = await fetch(`/api/categories/${categoryId}`, {
+        method: 'DELETE'
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        toast.success('分类已删除')
+        // 从当前文章的选中分类中移除
+        setThread(prev => ({
+          ...prev,
+          categories: prev.categories.filter(c => c !== categoryId)
+        }))
+        // 重新加载分类列表
+        await loadCategories()
+      } else {
+        toast.error(result.error || '删除分类失败')
+      }
+    } catch (error) {
+      console.error('删除分类失败:', error)
+      toast.error('删除分类失败: ' + error.message)
+    }
   }
 
   return (
@@ -248,23 +331,79 @@ function AdminThreadEditorPage() {
             {categoriesList.length === 0 ? (
               <div className="text-sm text-gray-500 text-center py-2">加载中...</div>
             ) : (
-              categoriesList.map((category) => (
-                <label key={category.id} className="flex items-center gap-2 py-1 hover:bg-gray-50 px-2 rounded">
-                  <input
-                    type="checkbox"
-                    checked={thread.categories.includes(category.id)}
-                    onChange={() => handleCategoryToggle(category.id)}
-                    className="rounded"
-                  />
-                  <span className="text-sm text-[#23282d]">{category.name}</span>
-                </label>
-              ))
+              categoriesList.map((category) => {
+                // 判断是否是"未分类"
+                const isUncategorized = category.slug === 'uncategorized' || category.name === '未分类';
+
+                return (
+                  <div key={category.id} className="flex items-center justify-between py-1 hover:bg-gray-50 px-2 rounded group">
+                    <label className="flex items-center gap-2 flex-1 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={thread.categories.includes(category.id)}
+                        onChange={() => handleCategoryToggle(category.id)}
+                        className="rounded"
+                      />
+                      <span className="text-sm text-[#23282d]">{category.name}</span>
+                    </label>
+                    {!isUncategorized && (
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault()
+                          handleDeleteCategory(category.id, category.name)
+                        }}
+                        className="text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="删除分类"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                );
+              })
             )}
           </div>
 
-          <button className="text-xs text-[#0073aa] hover:underline mt-2">
-            + 添加分类
-          </button>
+          {/* Add category form */}
+          {showAddCategory ? (
+            <div className="mt-3 p-3 bg-gray-50 rounded">
+              <input
+                type="text"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleAddCategory()}
+                placeholder="新分类名称"
+                className="w-full px-3 py-2 border border-gray-300 rounded text-sm mb-2"
+                autoFocus
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={handleAddCategory}
+                  className="flex-1 px-3 py-1 bg-[#0073aa] text-white rounded text-xs hover:bg-[#005a87]"
+                >
+                  添加
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAddCategory(false)
+                    setNewCategoryName('')
+                  }}
+                  className="flex-1 px-3 py-1 border border-gray-300 rounded text-xs hover:bg-gray-100"
+                >
+                  取消
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowAddCategory(true)}
+              className="text-xs text-[#0073aa] hover:underline mt-2"
+            >
+              + 添加分类
+            </button>
+          )}
         </div>
 
         {/* Tags */}
