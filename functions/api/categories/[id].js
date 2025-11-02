@@ -11,7 +11,7 @@ export async function onRequestDelete(context) {
   try {
     // 检查分类是否存在
     const { results: categories } = await env.DB.prepare(
-      'SELECT id, name, slug FROM categories WHERE id = ?'
+      'SELECT id, name FROM categories WHERE id = ?'
     ).bind(id).all();
 
     if (categories.length === 0) {
@@ -19,21 +19,6 @@ export async function onRequestDelete(context) {
         JSON.stringify({ error: '分类不存在' }),
         {
           status: 404,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    const category = categories[0];
-
-    // 防止删除"未分类"
-    if (category.slug === 'uncategorized' || category.name === '未分类') {
-      return new Response(
-        JSON.stringify({
-          error: '不能删除"未分类"，这是系统默认分类'
-        }),
-        {
-          status: 400,
           headers: { 'Content-Type': 'application/json' },
         }
       );
@@ -47,7 +32,7 @@ export async function onRequestDelete(context) {
     if (threadCategories[0].count > 0) {
       return new Response(
         JSON.stringify({
-          error: `无法删除分类"${category.name}"，因为有 ${threadCategories[0].count} 篇文章正在使用该分类`
+          error: `无法删除分类"${categories[0].name}"，因为有 ${threadCategories[0].count} 篇文章正在使用该分类`
         }),
         {
           status: 400,
