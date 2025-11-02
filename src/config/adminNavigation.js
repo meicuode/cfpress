@@ -15,8 +15,6 @@ export const adminNavigationConfig = {
       path: '/admin/threads',
       children: [
         { id: 'all-threads', label: '所有文章', path: '/admin/threads' },
-        { id: 'add-thread', label: '添加文章', path: '/admin/threads/new' },
-        { id: 'categories', label: '分类目录', path: '/admin/categories' },
         { id: 'tags', label: '标签', path: '/admin/tags' }
       ]
     },
