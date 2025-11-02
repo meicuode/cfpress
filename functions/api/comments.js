@@ -4,6 +4,8 @@
  * POST /api/comments - 创建新评论
  */
 
+import { parseUserAgent } from '../utils/parseUserAgent.js';
+
 // 获取评论列表
 export async function onRequestGet(context) {
   const { env, request } = context;
@@ -105,12 +107,29 @@ export async function onRequestPost(context) {
     const ip = request.headers.get('CF-Connecting-IP') || request.headers.get('X-Real-IP') || '';
     const userAgent = request.headers.get('User-Agent') || '';
 
+    // 解析 User-Agent
+    const { browser, os, device } = parseUserAgent(userAgent);
+
+    // 获取 Cloudflare 地理位置信息
+    const cf = request.cf || {};
+    const country = cf.country || '';
+    const city = cf.city || '';
+    const region = cf.region || '';
+
+    // 组合地理位置信息
+    let location = '未知';
+    if (city && country) {
+      location = region ? `${country} ${region} ${city}` : `${country} ${city}`;
+    } else if (country) {
+      location = country;
+    }
+
     // 插入评论（状态默认为 approved，实际项目中可能需要审核）
     const result = await env.DB.prepare(`
       INSERT INTO comments (
         thread_id, parent_id, author_name, author_email, author_website,
-        content, status, ip_address, user_agent, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        content, status, ip_address, user_agent, location, os, browser, device, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       thread_id,
       parent_id || null,
@@ -121,6 +140,10 @@ export async function onRequestPost(context) {
       'approved', // 自动批准，实际项目中可能需要设为 'pending'
       ip,
       userAgent,
+      location,
+      os,
+      browser,
+      device,
       new Date().toISOString()
     ).run();
 
