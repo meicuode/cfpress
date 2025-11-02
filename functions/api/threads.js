@@ -11,11 +11,14 @@ export async function onRequestGet(context) {
   const status = url.searchParams.get('status') || 'all';
   const limit = parseInt(url.searchParams.get('limit') || '20');
   const offset = parseInt(url.searchParams.get('offset') || '0');
+  const search = url.searchParams.get('search');
+  const year = url.searchParams.get('year');
+  const category = url.searchParams.get('category');
 
   try {
     // 构建查询
     let query = `
-      SELECT
+      SELECT DISTINCT
         t.*,
         u.display_name as author_name,
         u.username as author_username
@@ -26,9 +29,38 @@ export async function onRequestGet(context) {
     const conditions = [];
     const params = [];
 
+    // 如果有分类筛选，需要 JOIN
+    if (category && category !== 'all') {
+      query = `
+        SELECT DISTINCT
+          t.*,
+          u.display_name as author_name,
+          u.username as author_username
+        FROM threads t
+        LEFT JOIN users u ON t.author_id = u.id
+        INNER JOIN thread_categories tc ON t.id = tc.thread_id
+        INNER JOIN categories c ON tc.category_id = c.id
+      `;
+      conditions.push('c.slug = ?');
+      params.push(category);
+    }
+
     if (status !== 'all') {
       conditions.push('t.status = ?');
       params.push(status);
+    }
+
+    // 搜索关键词（标题或内容）
+    if (search) {
+      conditions.push('(t.title LIKE ? OR t.content LIKE ?)');
+      const searchPattern = `%${search}%`;
+      params.push(searchPattern, searchPattern);
+    }
+
+    // 按年份筛选
+    if (year && year !== 'all') {
+      conditions.push('strftime("%Y", t.created_at) = ?');
+      params.push(year);
     }
 
     if (conditions.length > 0) {
@@ -62,13 +94,45 @@ export async function onRequestGet(context) {
       thread.tags = tags;
     }
 
-    // 获取总数
-    let countQuery = 'SELECT COUNT(*) as total FROM threads';
+    // 获取总数（使用相同的筛选条件）
+    let countQuery = 'SELECT COUNT(DISTINCT t.id) as total FROM threads t';
     const countParams = [];
 
+    // 如果有分类筛选
+    if (category && category !== 'all') {
+      countQuery = `
+        SELECT COUNT(DISTINCT t.id) as total
+        FROM threads t
+        INNER JOIN thread_categories tc ON t.id = tc.thread_id
+        INNER JOIN categories c ON tc.category_id = c.id
+      `;
+    }
+
+    const countConditions = [];
+
+    if (category && category !== 'all') {
+      countConditions.push('c.slug = ?');
+      countParams.push(category);
+    }
+
     if (status !== 'all') {
-      countQuery += ' WHERE status = ?';
+      countConditions.push('t.status = ?');
       countParams.push(status);
+    }
+
+    if (search) {
+      countConditions.push('(t.title LIKE ? OR t.content LIKE ?)');
+      const searchPattern = `%${search}%`;
+      countParams.push(searchPattern, searchPattern);
+    }
+
+    if (year && year !== 'all') {
+      countConditions.push('strftime("%Y", t.created_at) = ?');
+      countParams.push(year);
+    }
+
+    if (countConditions.length > 0) {
+      countQuery += ' WHERE ' + countConditions.join(' AND ');
     }
 
     const { results: countResult } = await env.DB.prepare(countQuery)

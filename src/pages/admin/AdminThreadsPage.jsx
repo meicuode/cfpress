@@ -1,26 +1,74 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 function AdminThreadsPage() {
+  const location = useLocation()
   const [threads, setThreads] = useState([])
   const [loading, setLoading] = useState(true)
   const [totalCount, setTotalCount] = useState(0)
+  const [categories, setCategories] = useState([]) // 分类列表
 
   const [selectedThreads, setSelectedThreads] = useState([])
   const [bulkAction, setBulkAction] = useState('')
   const [filterDate, setFilterDate] = useState('all')
   const [filterCategory, setFilterCategory] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [filterStatus, setFilterStatus] = useState('all')
 
-  // 加载文章列表
+  // 加载分类列表
   useEffect(() => {
-    loadThreads()
+    loadCategories()
   }, [])
 
-  const loadThreads = async () => {
+  // 监听 URL 变化，读取 status 参数
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const status = params.get('status')
+    if (status === 'published') {
+      setFilterStatus('publish')
+    } else {
+      setFilterStatus('all')
+    }
+  }, [location.search])
+
+  // 加载文章列表（筛选和搜索时重新加载）
+  useEffect(() => {
+    loadThreads({ status: filterStatus })
+  }, [filterStatus])
+
+  const loadCategories = async () => {
+    try {
+      const response = await fetch('/api/categories')
+      const data = await response.json()
+      if (response.ok) {
+        setCategories(data.categories || [])
+      }
+    } catch (error) {
+      console.error('加载分类失败:', error)
+    }
+  }
+
+  const loadThreads = async (filters = {}) => {
     setLoading(true)
     try {
-      const response = await fetch('/api/threads?status=all&limit=100')
+      // 构建查询参数
+      const params = new URLSearchParams({
+        status: filters.status || 'all',
+        limit: '100'
+      })
+
+      // 添加筛选参数
+      if (filters.search) {
+        params.append('search', filters.search)
+      }
+      if (filters.year && filters.year !== 'all') {
+        params.append('year', filters.year)
+      }
+      if (filters.category && filters.category !== 'all') {
+        params.append('category', filters.category)
+      }
+
+      const response = await fetch(`/api/threads?${params}`)
       const data = await response.json()
 
       if (response.ok) {
@@ -75,10 +123,56 @@ function AdminThreadsPage() {
     )
   }
 
-  const handleBulkApply = () => {
-    if (bulkAction && selectedThreads.length > 0) {
-      console.log(`Applying ${bulkAction} to threads:`, selectedThreads)
-      // TODO: Implement bulk action API call
+  const handleBulkApply = async () => {
+    if (!bulkAction || selectedThreads.length === 0) {
+      alert('请选择操作和文章')
+      return
+    }
+
+    if (bulkAction === 'delete') {
+      if (!confirm(`确定要删除选中的 ${selectedThreads.length} 篇文章吗？`)) return
+
+      try {
+        const promises = selectedThreads.map(id =>
+          fetch(`/api/threads/${id}`, { method: 'DELETE' })
+        )
+        await Promise.all(promises)
+        alert('批量删除成功')
+        setSelectedThreads([])
+        loadThreads({ status: filterStatus })
+      } catch (error) {
+        console.error('批量删除失败:', error)
+        alert('批量删除失败')
+      }
+    }
+  }
+
+  const handleFilter = () => {
+    loadThreads({
+      status: filterStatus,
+      year: filterDate,
+      category: filterCategory
+    })
+  }
+
+  const handleSearch = () => {
+    const filters = {
+      status: filterStatus,
+      year: filterDate,
+      category: filterCategory
+    }
+
+    // 只在有搜索内容时才添加 search 参数
+    if (searchQuery.trim()) {
+      filters.search = searchQuery.trim()
+    }
+
+    loadThreads(filters)
+  }
+
+  const handleSearchKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSearch()
     }
   }
 
@@ -95,7 +189,7 @@ function AdminThreadsPage() {
       if (response.ok) {
         alert('文章已删除')
         // 重新加载列表
-        loadThreads()
+        loadThreads({ status: filterStatus })
       } else {
         alert('删除失败: ' + (data.error || '未知错误'))
       }
@@ -120,11 +214,17 @@ function AdminThreadsPage() {
         </div>
 
         <div className="flex items-center gap-2 text-sm text-[#646970]">
-          <Link to="/admin/threads" className="text-[#0073aa] hover:underline">
+          <Link
+            to="/admin/threads"
+            className={filterStatus === 'all' ? 'text-[#0073aa] hover:underline' : 'hover:underline hover:text-[#0073aa]'}
+          >
             全部 ({totalCount})
           </Link>
           <span>|</span>
-          <Link to="/admin/threads?status=published" className="hover:underline">
+          <Link
+            to="/admin/threads?status=published"
+            className={filterStatus === 'publish' ? 'text-[#0073aa] hover:underline' : 'hover:underline hover:text-[#0073aa]'}
+          >
             已发布 ({threads.filter(t => t.status === 'publish').length})
           </Link>
         </div>
@@ -144,7 +244,7 @@ function AdminThreadsPage() {
           </select>
           <button
             onClick={handleBulkApply}
-            className="px-4 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50"
+            className="px-4 py-1 border border-gray-300 rounded text-sm bg-white text-[#23282d] hover:bg-gray-50"
           >
             应用
           </button>
@@ -165,11 +265,17 @@ function AdminThreadsPage() {
             className="px-3 py-1 border border-gray-300 rounded text-sm"
           >
             <option value="all">所有分类</option>
-            <option value="tech">技术</option>
-            <option value="life">生活</option>
+            {categories.map(cat => (
+              <option key={cat.id} value={cat.slug}>
+                {cat.name}
+              </option>
+            ))}
           </select>
 
-          <button className="px-4 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">
+          <button
+            onClick={handleFilter}
+            className="px-4 py-1 border border-gray-300 rounded text-sm bg-white text-[#23282d] hover:bg-gray-50"
+          >
             筛选
           </button>
         </div>
@@ -179,10 +285,14 @@ function AdminThreadsPage() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyPress={handleSearchKeyPress}
             placeholder="搜索文章..."
             className="px-3 py-1 border border-gray-300 rounded text-sm w-[200px]"
           />
-          <button className="px-4 py-1 bg-[#0073aa] text-white rounded text-sm hover:bg-[#005a87]">
+          <button
+            onClick={handleSearch}
+            className="px-4 py-1 bg-[#0073aa] text-white rounded text-sm hover:bg-[#005a87]"
+          >
             搜索文章
           </button>
         </div>
