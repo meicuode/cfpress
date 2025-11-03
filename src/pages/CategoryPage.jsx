@@ -1,12 +1,103 @@
-import { Link } from 'react-router-dom'
-import { useEffect } from 'react'
+import { Link, useParams } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 
 function CategoryPage() {
+  const { slug } = useParams()
+  const [threads, setThreads] = useState([])
+  const [category, setCategory] = useState(null)
+  const [loading, setLoading] = useState(true)
+
   // 设置页面标题
   useEffect(() => {
-    document.title = '归档 - CFPress'
-  }, [])
+    if (slug) {
+      document.title = `${category?.name || '分类'} - CFPress`
+    } else {
+      document.title = '归档 - CFPress'
+    }
+  }, [slug, category])
 
+  // 加载分类文章
+  useEffect(() => {
+    if (slug) {
+      loadCategoryThreads()
+    } else {
+      setLoading(false)
+    }
+  }, [slug])
+
+  const loadCategoryThreads = async () => {
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/threads?category=${slug}&status=publish&limit=100`)
+      const data = await response.json()
+      if (response.ok) {
+        setThreads(data.threads || [])
+        // 从第一个文章中获取分类名称
+        if (data.threads && data.threads.length > 0 && data.threads[0].categories) {
+          const cat = data.threads[0].categories.find(c => c.slug === slug)
+          setCategory(cat)
+        }
+      }
+    } catch (error) {
+      console.error('加载分类文章失败:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // 格式化日期
+  const formatDate = (dateString) => {
+    if (!dateString) return ''
+    const date = new Date(dateString)
+    return `${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+  }
+
+  // 如果有 slug 参数，显示分类文章列表
+  if (slug) {
+    return (
+      <div className="bg-bg-card backdrop-blur-md rounded-xl border border-border p-10 max-md:p-6">
+        <div className="mb-8 pb-5 border-b border-border">
+          <h1 className="text-[28px] font-bold text-text-primary mb-2">
+            {loading ? '加载中...' : category?.name || slug}
+          </h1>
+          <p className="text-sm text-text-secondary">
+            共 {threads.length} 篇文章
+          </p>
+        </div>
+
+        {loading ? (
+          <div className="text-center text-text-secondary py-8">加载中...</div>
+        ) : threads.length === 0 ? (
+          <div className="text-center text-text-secondary py-8">该分类下暂无文章</div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {threads.map((thread) => (
+              <Link
+                key={thread.id}
+                to={`/thread/${thread.id}`}
+                className="flex items-center gap-2.5 p-3 px-4 bg-white/[0.03] rounded-lg border border-border transition-all text-text-primary hover:bg-white/5 hover:border-accent-blue hover:translate-x-1 max-md:flex-wrap"
+              >
+                <span className="text-[13px] text-text-secondary min-w-[50px]">
+                  {formatDate(thread.published_at || thread.created_at)}
+                </span>
+                <span className="text-text-secondary">·</span>
+                <span className="text-sm flex-1">{thread.title}</span>
+                <div className="flex gap-2 max-md:w-full">
+                  {thread.tags && thread.tags.map((tag) => (
+                    <span key={tag.id} className="text-xs text-accent-blue">
+                      #{tag.name}
+                    </span>
+                  ))}
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // 没有 slug 参数，显示归档页面
   const archives = [
     {
       year: 2025,

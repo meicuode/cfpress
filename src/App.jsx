@@ -30,6 +30,7 @@ function App() {
               <Route path="/thread/:id" element={<ThreadPage />} />
               <Route path="/tag/:tagName" element={<TagPage />} />
               <Route path="/category" element={<CategoryPage />} />
+              <Route path="/category/:slug" element={<CategoryPage />} />
               <Route path="/about" element={<AboutPage />} />
               <Route path="/friends" element={<FriendsPage />} />
               <Route path="/search" element={<SearchPage />} />
