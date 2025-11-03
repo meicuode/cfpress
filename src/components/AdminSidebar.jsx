@@ -27,9 +27,9 @@ function AdminSidebar() {
   }
 
   return (
-    <aside className="w-[200px] min-h-screen bg-[#23282d] text-[#eee] flex flex-col">
+    <aside className="w-[200px] h-screen bg-[#23282d] text-[#eee] flex flex-col fixed left-0 top-0 overflow-y-auto">
       {/* Site branding */}
-      <div className="h-[46px] flex items-center px-4 border-b border-[#32373c]">
+      <div className="h-[46px] flex items-center px-4 border-b border-[#32373c] flex-shrink-0">
         <Link to="/" className="flex items-center gap-2 text-sm text-[#eee] hover:text-white">
           <span className="text-base">🏠</span>
           <span>返回站点</span>
@@ -37,7 +37,7 @@ function AdminSidebar() {
       </div>
 
       {/* Navigation menu */}
-      <nav className="flex-1 py-3">
+      <nav className="flex-1 py-3 overflow-y-auto">
         {adminNavigationConfig.menuItems.map((item) => (
           <div key={item.id}>
             {item.children && item.children.length > 0 ? (
