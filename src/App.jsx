@@ -17,6 +17,8 @@ import AdminCommentsPage from './pages/admin/AdminCommentsPage'
 import AdminMenusPage from './pages/admin/AdminMenusPage'
 import AdminCategoriesPage from './pages/admin/AdminCategoriesPage'
 import AdminSettingsPage from './pages/admin/AdminSettingsPage'
+import AdminAdvancedPage from './pages/admin/AdminAdvancedPage'
+import AdminFooterPage from './pages/admin/AdminFooterPage'
 import AdminDashboardPage from './pages/admin/AdminDashboardPage'
 
 function App() {
@@ -46,9 +48,11 @@ function App() {
               <Route path="threads/:id/edit" element={<AdminThreadEditorPage />} />
               <Route path="comments" element={<AdminCommentsPage />} />
               <Route path="appearance/menus" element={<AdminMenusPage />} />
+              <Route path="appearance/footer" element={<AdminFooterPage />} />
               <Route path="appearance/categories" element={<AdminCategoriesPage />} />
               <Route path="settings" element={<AdminSettingsPage />} />
               <Route path="settings/general" element={<AdminSettingsPage />} />
+              <Route path="settings/advanced" element={<AdminAdvancedPage />} />
               <Route path="settings/site" element={<AdminSettingsPage />} />
             </Route>
           </Routes>

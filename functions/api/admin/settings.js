@@ -63,7 +63,17 @@ export async function onRequestPost(context) {
       site_language: 'string',
       allow_registration: 'boolean',
       default_user_role: 'string',
-      threads_per_page: 'number'
+      threads_per_page: 'number',
+      // 页脚设置
+      footer_custom_html: 'string',
+      footer_copyright: 'string',
+      footer_icp: 'string',
+      footer_social_links: 'string',
+      // 高级设置
+      head_scripts: 'string',
+      footer_scripts: 'string',
+      custom_css: 'string',
+      custom_js: 'string'
     };
 
     // 更新每个设置

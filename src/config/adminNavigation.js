@@ -14,8 +14,7 @@ export const adminNavigationConfig = {
       icon: '📝',
       path: '/admin/threads',
       children: [
-        { id: 'all-threads', label: '所有文章', path: '/admin/threads' },
-        { id: 'tags', label: '标签', path: '/admin/tags' }
+        { id: 'all-threads', label: '所有文章', path: '/admin/threads' }
       ]
     },
     {
@@ -32,6 +31,7 @@ export const adminNavigationConfig = {
       path: '/admin/appearance',
       children: [
         { id: 'menus', label: '菜单', path: '/admin/appearance/menus' },
+        { id: 'footer', label: '页脚设置', path: '/admin/appearance/footer' },
         { id: 'categories', label: '分类', path: '/admin/appearance/categories' }
       ]
     },
@@ -41,8 +41,8 @@ export const adminNavigationConfig = {
       icon: '⚙️',
       path: '/admin/settings',
       children: [
-        { id: 'general', label: '常规', path: '/admin/settings/general' },
-        { id: 'site', label: '站点设置', path: '/admin/settings/site' }
+        { id: 'site', label: '基础设置', path: '/admin/settings/site' },
+        { id: 'advanced', label: '高级设置', path: '/admin/settings/advanced' }
       ]
     }
   ]

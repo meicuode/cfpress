@@ -147,7 +147,6 @@ function AdminMenusPage() {
     // 如果是第一次拖拽，保存原始顺序（使用深拷贝）
     if (!hasOrderChanged) {
       const deepCopy = JSON.parse(JSON.stringify(menus))
-      console.log('保存原始顺序 - 菜单数量:', deepCopy.length)
       setOriginalMenus(deepCopy)
     }
     e.dataTransfer.effectAllowed = 'move'
@@ -252,15 +251,11 @@ function AdminMenusPage() {
 
   // 取消排序更改
   const handleCancelOrder = () => {
-    console.log('取消排序 - 当前菜单数量:', menus.length)
-    console.log('取消排序 - 原始菜单数量:', originalMenus.length)
     if (originalMenus.length > 0) {
       setMenus(originalMenus)
       setHasOrderChanged(false)
       setOriginalMenus([])
       toast.info('已取消排序更改')
-    } else {
-      toast.warning('没有保存的原始顺序')
     }
   }
 
