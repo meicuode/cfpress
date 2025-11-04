@@ -4,6 +4,7 @@ import { useToast } from '../contexts/ToastContext'
 import CommentForm from '../components/CommentForm'
 import CommentList from '../components/CommentList'
 import PostNavigation from '../components/PostNavigation'
+import EditorJSRenderer from '../components/EditorJSRenderer'
 
 function ThreadPage() {
   const { id } = useParams()
@@ -55,7 +56,19 @@ function ThreadPage() {
       const data = await response.json()
 
       if (response.ok) {
-        setThread(data.thread)
+        // 解析 Editor.js JSON 内容
+        let parsedContent = data.thread.content
+        try {
+          parsedContent = JSON.parse(data.thread.content)
+        } catch (e) {
+          // 如果解析失败，保持原样（可能是旧的纯文本内容）
+          console.warn('Content is not valid JSON, using as plain text')
+        }
+
+        setThread({
+          ...data.thread,
+          parsedContent // 添加解析后的内容
+        })
       } else {
         setError(data.error || '加载文章失败')
       }
@@ -209,11 +222,17 @@ function ThreadPage() {
           )}
         </header>
 
-        <div
-          className="text-base leading-loose text-text-primary [&_h2]:text-[22px] [&_h2]:my-8 [&_h2]:mb-4 [&_h2]:text-text-primary [&_p]:mb-4 whitespace-pre-wrap"
-          style={{ wordBreak: 'break-word' }}
-        >
-          {thread.content}
+        <div className="text-base leading-loose text-text-primary">
+          {thread.parsedContent && typeof thread.parsedContent === 'object' ? (
+            <EditorJSRenderer data={thread.parsedContent} />
+          ) : (
+            <div
+              className="[&_h2]:text-[22px] [&_h2]:my-8 [&_h2]:mb-4 [&_h2]:text-text-primary [&_p]:mb-4 whitespace-pre-wrap"
+              style={{ wordBreak: 'break-word' }}
+            >
+              {thread.content}
+            </div>
+          )}
         </div>
       </article>
 

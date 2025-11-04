@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { getThreadExcerpt } from '../utils/editorjs'
 
 function HomePage() {
   const [threads, setThreads] = useState([])
@@ -98,14 +99,10 @@ function HomePage() {
                   ))}
                 </div>
 
-                {thread.excerpt && (
-                  <p className="text-sm text-text-secondary leading-relaxed line-clamp-4">
-                    {thread.excerpt.length > 300
-                      ? thread.excerpt.slice(0, 300) + '...'
-                      : thread.excerpt
-                    }
-                  </p>
-                )}
+                {/* 文章摘要 */}
+                <p className="text-sm text-text-secondary leading-relaxed line-clamp-4">
+                  {getThreadExcerpt(thread, 300)}
+                </p>
               </div>
 
               {/* 右侧：缩略图 */}

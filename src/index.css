@@ -91,3 +91,163 @@
     animation: scale-in 0.2s ease-out;
   }
 }
+
+/* Editor.js Custom Styles - Outside of Tailwind layers to prevent optimization */
+#editorjs {
+  min-height: 400px;
+}
+
+.codex-editor {
+  font-size: 1rem;
+}
+
+.codex-editor__redactor {
+  padding-bottom: 10rem;
+}
+
+.ce-block__content,
+.ce-toolbar__content {
+  max-width: none;
+}
+
+/* 编辑器内文本颜色 - 深色 */
+.ce-paragraph,
+.ce-header,
+.cdx-list__item,
+.ce-block {
+  color: #111827 !important;
+}
+
+/* 段落占位符颜色 */
+.ce-paragraph[data-placeholder]:empty::before {
+  color: #9ca3af;
+}
+
+.ce-block--focused {
+  background-color: #f9fafb;
+}
+
+.ce-toolbar__plus,
+.ce-toolbar__settings-btn {
+  color: #4b5563;
+}
+
+.ce-toolbar__plus:hover,
+.ce-toolbar__settings-btn:hover {
+  background-color: #f3f4f6;
+}
+
+.ce-inline-toolbar,
+.ce-conversion-toolbar,
+.ce-settings {
+  background-color: white;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+}
+
+.ce-inline-tool,
+.ce-conversion-tool,
+.ce-settings__button {
+  color: #374151;
+}
+
+.ce-inline-tool:hover,
+.ce-conversion-tool:hover,
+.ce-settings__button:hover {
+  background-color: #f3f4f6;
+}
+
+.ce-inline-tool--active {
+  background-color: #dbeafe;
+  color: #2563eb;
+}
+
+.ce-popover {
+  background-color: white;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+}
+
+.ce-popover__item:hover {
+  background-color: #f3f4f6;
+}
+
+.ce-popover__item--active {
+  background-color: #eff6ff;
+  color: #2563eb;
+}
+
+/* Header styles */
+.ce-header {
+  font-weight: bold;
+  color: #111827 !important;
+}
+
+/* Code block styles */
+.ce-code__textarea {
+  font-family: monospace;
+  background-color: #111827;
+  color: #f3f4f6;
+  padding: 1rem;
+  border-radius: 0.375rem;
+}
+
+/* Table styles */
+.tc-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.tc-table__cell {
+  border: 1px solid #d1d5db;
+  padding: 0.5rem;
+  color: #111827 !important;
+}
+
+/* Quote styles */
+.cdx-quote {
+  border-left: 4px solid #3b82f6;
+  padding-left: 1rem;
+  font-style: italic;
+  color: #374151 !important;
+}
+
+.cdx-quote__text {
+  color: #374151 !important;
+}
+
+/* Warning styles */
+.cdx-warning {
+  background-color: #fefce8;
+  border-left: 4px solid #eab308;
+  padding: 1rem;
+}
+
+.cdx-warning__title,
+.cdx-warning__message {
+  color: #111827 !important;
+}
+
+/* Checklist styles */
+.cdx-checklist__item-checkbox {
+  margin-right: 0.5rem;
+}
+
+.cdx-checklist__item-text {
+  color: #111827 !important;
+}
+
+/* Delimiter styles */
+.ce-delimiter {
+  text-align: center;
+  font-size: 1.5rem;
+  margin: 2rem 0;
+  color: #9ca3af;
+}
+
+/* List styles */
+.cdx-list__item {
+  color: #111827 !important;
+}

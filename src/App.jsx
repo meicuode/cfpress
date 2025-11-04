@@ -12,7 +12,7 @@ import AboutPage from './pages/AboutPage'
 import FriendsPage from './pages/FriendsPage'
 import SearchPage from './pages/SearchPage'
 import AdminThreadsPage from './pages/admin/AdminThreadsPage'
-import AdminThreadEditorPage from './pages/admin/AdminThreadEditorPage'
+import AdminThreadEditPage from './pages/admin/AdminThreadEditPage'
 import AdminCommentsPage from './pages/admin/AdminCommentsPage'
 import AdminMenusPage from './pages/admin/AdminMenusPage'
 import AdminCategoriesPage from './pages/admin/AdminCategoriesPage'
@@ -44,8 +44,8 @@ function App() {
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminDashboardPage />} />
               <Route path="threads" element={<AdminThreadsPage />} />
-              <Route path="threads/new" element={<AdminThreadEditorPage />} />
-              <Route path="threads/:id/edit" element={<AdminThreadEditorPage />} />
+              <Route path="threads/new" element={<AdminThreadEditPage />} />
+              <Route path="threads/:id/edit" element={<AdminThreadEditPage />} />
               <Route path="comments" element={<AdminCommentsPage />} />
               <Route path="appearance/menus" element={<AdminMenusPage />} />
               <Route path="appearance/footer" element={<AdminFooterPage />} />
