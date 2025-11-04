@@ -10,6 +10,7 @@ function Navbar() {
   const [navConfig, setNavConfig] = useState(navigationConfig)
   const [searchVisible, setSearchVisible] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [openDropdown, setOpenDropdown] = useState(null) // 当前打开的下拉菜单
 
   useEffect(() => {
     // Load navigation config (could be from API in the future)
@@ -46,17 +47,61 @@ function Navbar() {
 
         {/* Main navigation menu */}
         <div className="flex items-center gap-6 flex-1 max-md:gap-3">
-          {navConfig.menuItems.map((item) => (
-            <Link
-              key={item.id}
-              to={item.path}
-              className={`text-sm whitespace-nowrap transition-colors max-md:text-[13px] ${
-                isActive(item.path) ? 'text-text-primary font-medium' : 'text-text-secondary hover:text-text-primary'
-              }`}
-            >
-              {item.label} {item.icon}
-            </Link>
-          ))}
+          {navConfig.menuItems.map((item) => {
+            // 如果有子菜单，显示为下拉菜单
+            if (item.children && item.children.length > 0) {
+              return (
+                <div
+                  key={item.id}
+                  className="relative group"
+                  onMouseEnter={() => setOpenDropdown(item.id)}
+                  onMouseLeave={() => setOpenDropdown(null)}
+                >
+                  <button
+                    className={`text-sm whitespace-nowrap transition-colors max-md:text-[13px] flex items-center gap-1 ${
+                      isActive(item.path) ? 'text-text-primary font-medium' : 'text-text-secondary hover:text-text-primary'
+                    }`}
+                  >
+                    {item.label} {item.icon}
+                    <span className="text-xs">▼</span>
+                  </button>
+
+                  {/* 下拉菜单 - 添加了 pt-2 来创建无缝过渡区域 */}
+                  {openDropdown === item.id && (
+                    <div className="absolute top-full left-0 pt-2 z-50">
+                      <div className="min-w-[160px] bg-bg-secondary/95 backdrop-blur-md border border-border rounded-lg shadow-lg py-2">
+                        {item.children.map((child) => (
+                          <Link
+                            key={child.id}
+                            to={child.path}
+                            target={child.target}
+                            className="block px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-card transition-colors"
+                          >
+                            {child.icon && <span className="mr-2">{child.icon}</span>}
+                            {child.label}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            }
+
+            // 没有子菜单，显示为普通链接
+            return (
+              <Link
+                key={item.id}
+                to={item.path}
+                target={item.target}
+                className={`text-sm whitespace-nowrap transition-colors max-md:text-[13px] ${
+                  isActive(item.path) ? 'text-text-primary font-medium' : 'text-text-secondary hover:text-text-primary'
+                }`}
+              >
+                {item.label} {item.icon}
+              </Link>
+            )
+          })}
         </div>
 
         {/* Search and action buttons */}

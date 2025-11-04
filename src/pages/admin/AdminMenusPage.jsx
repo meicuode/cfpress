@@ -12,6 +12,11 @@ function AdminMenusPage() {
   const [showForm, setShowForm] = useState(false)
   const [selectedPosition, setSelectedPosition] = useState('header')
 
+  // 拖拽相关状态
+  const [draggedItem, setDraggedItem] = useState(null)
+  const [dragOverItem, setDragOverItem] = useState(null)
+  const [originalMenus, setOriginalMenus] = useState([]) // 用于取消拖拽时恢复
+
   const [formData, setFormData] = useState({
     label: '',
     path: '',
@@ -134,6 +139,120 @@ function AdminMenusPage() {
     }
   }
 
+  // 拖拽开始
+  const handleDragStart = (e, menu) => {
+    setDraggedItem(menu)
+    setOriginalMenus([...menus]) // 保存原始顺序
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  // 拖拽经过
+  const handleDragOver = (e, menu) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+
+    if (draggedItem && menu.id !== draggedItem.id) {
+      setDragOverItem(menu)
+    }
+  }
+
+  // 拖拽离开
+  const handleDragLeave = (e) => {
+    // 只在真正离开元素时清除
+    if (e.currentTarget.contains(e.relatedTarget)) return
+    setDragOverItem(null)
+  }
+
+  // 放置
+  const handleDrop = async (e, targetMenu) => {
+    e.preventDefault()
+    setDragOverItem(null)
+
+    if (!draggedItem || draggedItem.id === targetMenu.id) {
+      setDraggedItem(null)
+      return
+    }
+
+    // 只允许在同一位置（header/footer/sidebar）和同一层级（parent_id相同）的菜单间拖拽
+    if (draggedItem.position !== targetMenu.position || draggedItem.parent_id !== targetMenu.parent_id) {
+      toast.warning('只能在同一位置和同一层级的菜单间调整顺序')
+      setDraggedItem(null)
+      return
+    }
+
+    // 临时更新UI顺序
+    const updatedMenus = [...menus]
+    const draggedIndex = updatedMenus.findIndex(m => m.id === draggedItem.id)
+    const targetIndex = updatedMenus.findIndex(m => m.id === targetMenu.id)
+
+    // 移除拖拽项
+    const [removed] = updatedMenus.splice(draggedIndex, 1)
+    // 插入到目标位置
+    updatedMenus.splice(targetIndex, 0, removed)
+
+    // 更新sort_order
+    const samePositionMenus = updatedMenus.filter(m =>
+      m.position === draggedItem.position && m.parent_id === draggedItem.parent_id
+    )
+    samePositionMenus.forEach((menu, index) => {
+      menu.sort_order = index + 1
+    })
+
+    setMenus(updatedMenus)
+
+    // 显示确认对话框
+    const confirmed = await confirm({
+      title: '保存排序',
+      message: `确定要保存新的菜单顺序吗？`,
+      confirmText: '保存',
+      cancelText: '取消',
+      type: 'default'
+    })
+
+    if (confirmed) {
+      // 保存到服务器
+      try {
+        const items = samePositionMenus.map(menu => ({
+          id: menu.id,
+          sort_order: menu.sort_order,
+          parent_id: menu.parent_id
+        }))
+
+        const response = await fetch('/api/admin/navigation/reorder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items })
+        })
+
+        const data = await response.json()
+        if (response.ok) {
+          toast.success('菜单顺序已更新')
+          loadMenus() // 重新加载
+        } else {
+          toast.error(data.error || '更新顺序失败')
+          setMenus(originalMenus) // 恢复原始顺序
+        }
+      } catch (error) {
+        console.error('Error updating order:', error)
+        toast.error('更新顺序失败')
+        setMenus(originalMenus) // 恢复原始顺序
+      }
+    } else {
+      // 用户取消，恢复原始顺序
+      setMenus(originalMenus)
+      toast.info('已取消排序更改')
+    }
+
+    setDraggedItem(null)
+    setOriginalMenus([])
+  }
+
+  // 拖拽结束
+  const handleDragEnd = () => {
+    setDraggedItem(null)
+    setDragOverItem(null)
+  }
+
   const getMenusByPosition = (position) => {
     return menus.filter(m => m.position === position)
   }
@@ -159,8 +278,21 @@ function AdminMenusPage() {
 
     return positionMenus.map((menu) => (
       <div key={menu.id} className="mb-2">
-        <div className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
+        <div
+          draggable
+          onDragStart={(e) => handleDragStart(e, menu)}
+          onDragOver={(e) => handleDragOver(e, menu)}
+          onDragLeave={handleDragLeave}
+          onDrop={(e) => handleDrop(e, menu)}
+          onDragEnd={handleDragEnd}
+          className={`flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 cursor-move transition-all ${
+            draggedItem?.id === menu.id ? 'opacity-50 scale-95' : ''
+          } ${
+            dragOverItem?.id === menu.id ? 'border-blue-500 border-2 bg-blue-50' : ''
+          }`}
+        >
           <div className="flex items-center gap-3 flex-1">
+            <span className="text-gray-400 cursor-grab active:cursor-grabbing">⋮⋮</span>
             {menu.icon && <span className="text-xl">{menu.icon}</span>}
             <div>
               <div className="flex items-center gap-2">
@@ -199,9 +331,20 @@ function AdminMenusPage() {
             {getChildMenus(menu.id).map((child) => (
               <div
                 key={child.id}
-                className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100"
+                draggable
+                onDragStart={(e) => handleDragStart(e, child)}
+                onDragOver={(e) => handleDragOver(e, child)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, child)}
+                onDragEnd={handleDragEnd}
+                className={`flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 cursor-move transition-all ${
+                  draggedItem?.id === child.id ? 'opacity-50 scale-95' : ''
+                } ${
+                  dragOverItem?.id === child.id ? 'border-blue-500 border-2 bg-blue-50' : ''
+                }`}
               >
                 <div className="flex items-center gap-3 flex-1">
+                  <span className="text-gray-400 cursor-grab active:cursor-grabbing text-sm">⋮⋮</span>
                   {child.icon && <span className="text-lg">{child.icon}</span>}
                   <div>
                     <div className="flex items-center gap-2">
