@@ -16,6 +16,8 @@ function AdminMenusPage() {
   const [draggedItem, setDraggedItem] = useState(null)
   const [dragOverItem, setDragOverItem] = useState(null)
   const [originalMenus, setOriginalMenus] = useState([]) // 用于取消拖拽时恢复
+  const [hasOrderChanged, setHasOrderChanged] = useState(false) // 是否发生了排序变化
+  const [savingOrder, setSavingOrder] = useState(false) // 是否正在保存排序
 
   const [formData, setFormData] = useState({
     label: '',
@@ -142,7 +144,12 @@ function AdminMenusPage() {
   // 拖拽开始
   const handleDragStart = (e, menu) => {
     setDraggedItem(menu)
-    setOriginalMenus([...menus]) // 保存原始顺序
+    // 如果是第一次拖拽，保存原始顺序（使用深拷贝）
+    if (!hasOrderChanged) {
+      const deepCopy = JSON.parse(JSON.stringify(menus))
+      console.log('保存原始顺序 - 菜单数量:', deepCopy.length)
+      setOriginalMenus(deepCopy)
+    }
     e.dataTransfer.effectAllowed = 'move'
   }
 
@@ -164,7 +171,7 @@ function AdminMenusPage() {
   }
 
   // 放置
-  const handleDrop = async (e, targetMenu) => {
+  const handleDrop = (e, targetMenu) => {
     e.preventDefault()
     setDragOverItem(null)
 
@@ -199,58 +206,62 @@ function AdminMenusPage() {
     })
 
     setMenus(updatedMenus)
-
-    // 显示确认对话框
-    const confirmed = await confirm({
-      title: '保存排序',
-      message: `确定要保存新的菜单顺序吗？`,
-      confirmText: '保存',
-      cancelText: '取消',
-      type: 'default'
-    })
-
-    if (confirmed) {
-      // 保存到服务器
-      try {
-        const items = samePositionMenus.map(menu => ({
-          id: menu.id,
-          sort_order: menu.sort_order,
-          parent_id: menu.parent_id
-        }))
-
-        const response = await fetch('/api/admin/navigation/reorder', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ items })
-        })
-
-        const data = await response.json()
-        if (response.ok) {
-          toast.success('菜单顺序已更新')
-          loadMenus() // 重新加载
-        } else {
-          toast.error(data.error || '更新顺序失败')
-          setMenus(originalMenus) // 恢复原始顺序
-        }
-      } catch (error) {
-        console.error('Error updating order:', error)
-        toast.error('更新顺序失败')
-        setMenus(originalMenus) // 恢复原始顺序
-      }
-    } else {
-      // 用户取消，恢复原始顺序
-      setMenus(originalMenus)
-      toast.info('已取消排序更改')
-    }
-
+    setHasOrderChanged(true) // 标记发生了变化
     setDraggedItem(null)
-    setOriginalMenus([])
   }
 
   // 拖拽结束
   const handleDragEnd = () => {
     setDraggedItem(null)
     setDragOverItem(null)
+  }
+
+  // 保存排序
+  const handleSaveOrder = async () => {
+    setSavingOrder(true)
+    try {
+      // 获取所有需要更新的菜单项
+      const allItems = menus.map(menu => ({
+        id: menu.id,
+        sort_order: menu.sort_order,
+        parent_id: menu.parent_id
+      }))
+
+      const response = await fetch('/api/admin/navigation/reorder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: allItems })
+      })
+
+      const data = await response.json()
+      if (response.ok) {
+        toast.success('菜单顺序已保存')
+        setHasOrderChanged(false)
+        setOriginalMenus([])
+        loadMenus() // 重新加载
+      } else {
+        toast.error(data.error || '保存失败')
+      }
+    } catch (error) {
+      console.error('Error saving order:', error)
+      toast.error('保存失败')
+    } finally {
+      setSavingOrder(false)
+    }
+  }
+
+  // 取消排序更改
+  const handleCancelOrder = () => {
+    console.log('取消排序 - 当前菜单数量:', menus.length)
+    console.log('取消排序 - 原始菜单数量:', originalMenus.length)
+    if (originalMenus.length > 0) {
+      setMenus(originalMenus)
+      setHasOrderChanged(false)
+      setOriginalMenus([])
+      toast.info('已取消排序更改')
+    } else {
+      toast.warning('没有保存的原始顺序')
+    }
   }
 
   const getMenusByPosition = (position) => {
@@ -427,11 +438,33 @@ function AdminMenusPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* 菜单列表 */}
           <div className="lg:col-span-2">
-            <h2 className="text-lg font-medium text-[#23282d] mb-4">
-              {selectedPosition === 'header' && '顶部菜单'}
-              {selectedPosition === 'footer' && '底部菜单'}
-              {selectedPosition === 'sidebar' && '侧边栏菜单'}
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-medium text-[#23282d]">
+                {selectedPosition === 'header' && '顶部菜单'}
+                {selectedPosition === 'footer' && '底部菜单'}
+                {selectedPosition === 'sidebar' && '侧边栏菜单'}
+              </h2>
+
+              {/* 保存/取消排序按钮 */}
+              {hasOrderChanged && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleCancelOrder}
+                    disabled={savingOrder}
+                    className="px-4 py-2 bg-gray-200 text-[#23282d] rounded text-sm hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    取消
+                  </button>
+                  <button
+                    onClick={handleSaveOrder}
+                    disabled={savingOrder}
+                    className="px-4 py-2 bg-[#0073aa] text-white rounded text-sm hover:bg-[#005a87] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {savingOrder ? '保存中...' : '保存排序'}
+                  </button>
+                </div>
+              )}
+            </div>
 
             {loading ? (
               <div className="text-center py-8 text-[#646970]">加载中...</div>
