@@ -14,6 +14,8 @@ import SearchPage from './pages/SearchPage'
 import AdminThreadsPage from './pages/admin/AdminThreadsPage'
 import AdminThreadEditorPage from './pages/admin/AdminThreadEditorPage'
 import AdminCommentsPage from './pages/admin/AdminCommentsPage'
+import AdminMenusPage from './pages/admin/AdminMenusPage'
+import AdminCategoriesPage from './pages/admin/AdminCategoriesPage'
 import AdminSettingsPage from './pages/admin/AdminSettingsPage'
 import AdminDashboardPage from './pages/admin/AdminDashboardPage'
 
@@ -43,6 +45,8 @@ function App() {
               <Route path="threads/new" element={<AdminThreadEditorPage />} />
               <Route path="threads/:id/edit" element={<AdminThreadEditorPage />} />
               <Route path="comments" element={<AdminCommentsPage />} />
+              <Route path="appearance/menus" element={<AdminMenusPage />} />
+              <Route path="appearance/categories" element={<AdminCategoriesPage />} />
               <Route path="settings" element={<AdminSettingsPage />} />
               <Route path="settings/general" element={<AdminSettingsPage />} />
               <Route path="settings/site" element={<AdminSettingsPage />} />

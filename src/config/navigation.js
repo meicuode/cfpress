@@ -64,13 +64,20 @@ export const navigationConfig = {
   ],
 }
 
-// Function to fetch navigation config from API (future implementation)
+// Function to fetch navigation config from API
 export async function fetchNavigationConfig() {
-  // TODO: Implement API call to fetch navigation from D1 database
-  // const response = await fetch('/api/navigation')
-  // const data = await response.json()
-  // return data
-
-  // For now, return static config
-  return navigationConfig
+  try {
+    const response = await fetch('/api/navigation')
+    if (response.ok) {
+      const data = await response.json()
+      return data
+    } else {
+      console.error('Failed to fetch navigation config, using static config')
+      return navigationConfig
+    }
+  } catch (error) {
+    console.error('Error fetching navigation config:', error)
+    // Fallback to static config if API fails
+    return navigationConfig
+  }
 }

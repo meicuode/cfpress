@@ -26,6 +26,16 @@ export const adminNavigationConfig = {
       children: []
     },
     {
+      id: 'appearance',
+      label: '外观',
+      icon: '🎨',
+      path: '/admin/appearance',
+      children: [
+        { id: 'menus', label: '菜单', path: '/admin/appearance/menus' },
+        { id: 'categories', label: '分类', path: '/admin/appearance/categories' }
+      ]
+    },
+    {
       id: 'settings',
       label: '设置',
       icon: '⚙️',

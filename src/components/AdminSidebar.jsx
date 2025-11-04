@@ -4,7 +4,7 @@ import { adminNavigationConfig } from '../config/adminNavigation'
 
 function AdminSidebar() {
   const location = useLocation()
-  const [expandedMenus, setExpandedMenus] = useState(['threads', 'settings'])
+  const [expandedMenus, setExpandedMenus] = useState(['threads', 'appearance', 'settings'])
 
   const toggleMenu = (menuId) => {
     setExpandedMenus(prev =>

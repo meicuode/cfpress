@@ -52,7 +52,7 @@ function AdminCommentsPage() {
     } finally {
       setLoading(false)
     }
-  }, [filterType, searchQuery, toast])
+  }, [filterType, searchQuery])
 
   // Load comments when filter changes
   useEffect(() => {
