@@ -209,8 +209,8 @@ export async function onRequestGet(context) {
         ('友链', '/friends', '💝', 0, 4, 'header');
 
       INSERT OR IGNORE INTO settings (key, value, type, description, group_name) VALUES
-        ('site_title', '没有小家', 'string', '站点标题', 'general'),
-        ('site_subtitle', '又一个 WordPress 站点', 'string', '站点副标题', 'general'),
+        ('site_title', 'cfpress', 'string', '站点标题', 'general'),
+        ('site_subtitle', 'cfpress,一个自由的站点', 'string', '站点副标题', 'general'),
         ('site_url', 'https://blogs.zuichu.de', 'string', '站点地址', 'general'),
         ('admin_email', 'admin@example.com', 'string', '管理员邮箱', 'general'),
         ('threads_per_page', '10', 'number', '每页显示文章数', 'general');

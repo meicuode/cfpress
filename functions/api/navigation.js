@@ -59,7 +59,7 @@ export async function onRequestGet(context) {
       JSON.stringify(navigationConfig),
       {
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json; charset=utf-8',
           'Access-Control-Allow-Origin': '*',
         },
       }
@@ -71,7 +71,7 @@ export async function onRequestGet(context) {
       {
         status: 500,
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json; charset=utf-8',
         },
       }
     );
