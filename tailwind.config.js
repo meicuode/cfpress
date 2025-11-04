@@ -4,12 +4,6 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
-  safelist: [
-    // Editor.js classes - prevent Tailwind from purging these
-    {
-      pattern: /^(ce-|cdx-|tc-|codex-)/,
-    },
-  ],
   theme: {
     extend: {
       colors: {

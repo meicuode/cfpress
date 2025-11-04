@@ -4,7 +4,6 @@ import { useToast } from '../contexts/ToastContext'
 import CommentForm from '../components/CommentForm'
 import CommentList from '../components/CommentList'
 import PostNavigation from '../components/PostNavigation'
-import EditorJSRenderer from '../components/EditorJSRenderer'
 
 function ThreadPage() {
   const { id } = useParams()
@@ -56,19 +55,7 @@ function ThreadPage() {
       const data = await response.json()
 
       if (response.ok) {
-        // 解析 Editor.js JSON 内容
-        let parsedContent = data.thread.content
-        try {
-          parsedContent = JSON.parse(data.thread.content)
-        } catch (e) {
-          // 如果解析失败，保持原样（可能是旧的纯文本内容）
-          console.warn('Content is not valid JSON, using as plain text')
-        }
-
-        setThread({
-          ...data.thread,
-          parsedContent // 添加解析后的内容
-        })
+        setThread(data.thread)
       } else {
         setError(data.error || '加载文章失败')
       }
@@ -222,18 +209,28 @@ function ThreadPage() {
           )}
         </header>
 
-        <div className="text-base leading-loose text-text-primary">
-          {thread.parsedContent && typeof thread.parsedContent === 'object' ? (
-            <EditorJSRenderer data={thread.parsedContent} />
-          ) : (
-            <div
-              className="[&_h2]:text-[22px] [&_h2]:my-8 [&_h2]:mb-4 [&_h2]:text-text-primary [&_p]:mb-4 whitespace-pre-wrap"
-              style={{ wordBreak: 'break-word' }}
-            >
-              {thread.content}
-            </div>
-          )}
-        </div>
+        <div
+          className="text-base leading-loose text-text-primary prose prose-invert max-w-none
+            [&_h1]:text-3xl [&_h1]:font-bold [&_h1]:my-6 [&_h1]:text-text-primary
+            [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:my-5 [&_h2]:text-text-primary
+            [&_h3]:text-xl [&_h3]:font-bold [&_h3]:my-4 [&_h3]:text-text-primary
+            [&_h4]:text-lg [&_h4]:font-bold [&_h4]:my-3 [&_h4]:text-text-primary
+            [&_p]:mb-4 [&_p]:text-text-primary
+            [&_a]:text-accent-blue [&_a]:hover:underline
+            [&_strong]:font-bold [&_strong]:text-text-primary
+            [&_em]:italic
+            [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-4
+            [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-4
+            [&_li]:mb-2 [&_li]:text-text-primary
+            [&_blockquote]:border-l-4 [&_blockquote]:border-accent-blue [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:my-4
+            [&_code]:bg-gray-800 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-sm
+            [&_pre]:bg-gray-800 [&_pre]:p-4 [&_pre]:rounded [&_pre]:overflow-x-auto [&_pre]:my-4
+            [&_img]:rounded-lg [&_img]:my-4 [&_img]:max-w-full
+            [&_table]:w-full [&_table]:my-4 [&_table]:border-collapse
+            [&_th]:border [&_th]:border-border [&_th]:px-4 [&_th]:py-2 [&_th]:bg-bg-primary
+            [&_td]:border [&_td]:border-border [&_td]:px-4 [&_td]:py-2"
+          dangerouslySetInnerHTML={{ __html: thread.content }}
+        />
       </article>
 
       <section className="bg-bg-card backdrop-blur-md rounded-xl border border-border p-8 max-md:p-5">

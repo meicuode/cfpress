@@ -1,28 +1,17 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import EditorJS from '@editorjs/editorjs'
-import Header from '@editorjs/header'
-import List from '@editorjs/list'
-import Quote from '@editorjs/quote'
-import Code from '@editorjs/code'
-import InlineCode from '@editorjs/inline-code'
-import Delimiter from '@editorjs/delimiter'
-import Table from '@editorjs/table'
-import Marker from '@editorjs/marker'
-import Checklist from '@editorjs/checklist'
-import Embed from '@editorjs/embed'
-import Warning from '@editorjs/warning'
-import ColorPlugin from 'editorjs-text-color-plugin'
+import ReactQuill from 'react-quill'
+import 'react-quill/dist/quill.snow.css'
 import { useToast } from '../../contexts/ToastContext'
 
 function AdminThreadEditPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const toast = useToast()
-  const editorRef = useRef(null)
-  const [editor, setEditor] = useState(null)
+  const quillRef = useRef(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [content, setContent] = useState('')
 
   const [formData, setFormData] = useState({
     title: '',
@@ -36,6 +25,35 @@ function AdminThreadEditPage() {
   const [categories, setCategories] = useState([])
   const [tagInput, setTagInput] = useState('')
 
+  // Quill 工具栏配置 - 包含字体大小
+  const modules = {
+    toolbar: [
+      [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+      [{ 'size': ['small', false, 'large', 'huge'] }],  // 字体大小
+      [{ 'font': [] }],  // 字体系列
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ 'color': [] }, { 'background': [] }],
+      [{ 'script': 'sub'}, { 'script': 'super' }],
+      ['blockquote', 'code-block'],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      [{ 'indent': '-1'}, { 'indent': '+1' }],
+      [{ 'align': [] }],
+      ['link', 'image', 'video'],
+      ['clean']
+    ]
+  }
+
+  const formats = [
+    'header', 'size', 'font',
+    'bold', 'italic', 'underline', 'strike',
+    'color', 'background',
+    'script',
+    'blockquote', 'code-block',
+    'list', 'bullet', 'indent',
+    'align',
+    'link', 'image', 'video'
+  ]
+
   useEffect(() => {
     loadCategories()
     if (id && id !== 'new') {
@@ -43,118 +61,7 @@ function AdminThreadEditPage() {
     } else {
       setLoading(false)
     }
-
-    return () => {
-      if (editor) {
-        editor.destroy()
-      }
-    }
   }, [id])
-
-  useEffect(() => {
-    if (!loading && !editor) {
-      initEditor()
-    }
-  }, [loading])
-
-  const initEditor = () => {
-    const editorInstance = new EditorJS({
-      holder: 'editorjs',
-      placeholder: '开始写作...',
-      tools: {
-        header: {
-          class: Header,
-          config: {
-            placeholder: '输入标题',
-            levels: [1, 2, 3, 4, 5, 6],
-            defaultLevel: 2
-          },
-          inlineToolbar: true
-        },
-        list: {
-          class: List,
-          inlineToolbar: true,
-          config: {
-            defaultStyle: 'unordered'
-          }
-        },
-        checklist: {
-          class: Checklist,
-          inlineToolbar: true
-        },
-        quote: {
-          class: Quote,
-          inlineToolbar: true,
-          config: {
-            quotePlaceholder: '输入引用',
-            captionPlaceholder: '引用来源'
-          }
-        },
-        code: {
-          class: Code,
-          config: {
-            placeholder: '输入代码'
-          }
-        },
-        inlineCode: {
-          class: InlineCode
-        },
-        marker: {
-          class: Marker
-        },
-        Color: {
-          class: ColorPlugin,
-          config: {
-            colorCollections: ['#FF1300','#EC7878','#9C27B0','#673AB7','#3F51B5','#0070FF','#03A9F4','#00BCD4','#4CAF50','#8BC34A','#CDDC39', '#FFF'],
-            defaultColor: '#FF1300',
-            type: 'text'
-          }
-        },
-        Marker: {
-          class: ColorPlugin,
-          config: {
-            defaultColor: '#FFBF00',
-            type: 'marker'
-          }
-        },
-        delimiter: Delimiter,
-        table: {
-          class: Table,
-          inlineToolbar: true,
-          config: {
-            rows: 2,
-            cols: 3
-          }
-        },
-        warning: {
-          class: Warning,
-          inlineToolbar: true,
-          config: {
-            titlePlaceholder: '标题',
-            messagePlaceholder: '消息'
-          }
-        },
-        embed: {
-          class: Embed,
-          config: {
-            services: {
-              youtube: true,
-              coub: true,
-              codepen: true,
-              imgur: true,
-              vimeo: true
-            }
-          }
-        }
-      },
-      data: editorRef.current || {},
-      onChange: () => {
-        // 内容变化时可以自动保存草稿
-      }
-    })
-
-    setEditor(editorInstance)
-  }
 
   const loadCategories = async () => {
     try {
@@ -175,7 +82,7 @@ function AdminThreadEditPage() {
       const data = await response.json()
 
       if (response.ok) {
-        const thread = data.thread // 获取 thread 对象
+        const thread = data.thread
 
         setFormData({
           title: thread.title || '',
@@ -186,20 +93,20 @@ function AdminThreadEditPage() {
           tag_names: thread.tags?.map(t => t.name) || []
         })
 
-        // 解析内容为 Editor.js 格式
+        // 处理内容格式
         if (thread.content) {
           try {
-            editorRef.current = JSON.parse(thread.content)
-          } catch {
-            // 如果不是 JSON，转换为简单的段落
-            editorRef.current = {
-              blocks: [{
-                type: 'paragraph',
-                data: {
-                  text: thread.content
-                }
-              }]
+            // 尝试解析 Editor.js JSON 格式
+            const parsed = JSON.parse(thread.content)
+            if (parsed.blocks) {
+              // 转换 Editor.js 格式为 HTML
+              setContent(convertEditorJsToHtml(parsed))
+            } else {
+              setContent(thread.content)
             }
+          } catch {
+            // 如果不是 JSON，直接使用 HTML
+            setContent(thread.content)
           }
         }
       } else {
@@ -214,6 +121,43 @@ function AdminThreadEditPage() {
     }
   }
 
+  // 简单的 Editor.js 到 HTML 转换
+  const convertEditorJsToHtml = (editorData) => {
+    let html = ''
+    editorData.blocks.forEach(block => {
+      switch (block.type) {
+        case 'header':
+          html += `<h${block.data.level}>${block.data.text}</h${block.data.level}>`
+          break
+        case 'paragraph':
+          html += `<p>${block.data.text}</p>`
+          break
+        case 'list':
+          const tag = block.data.style === 'ordered' ? 'ol' : 'ul'
+          html += `<${tag}>`
+          block.data.items.forEach(item => {
+            html += `<li>${item}</li>`
+          })
+          html += `</${tag}>`
+          break
+        case 'quote':
+          html += `<blockquote>${block.data.text}</blockquote>`
+          break
+        case 'code':
+          html += `<pre><code>${block.data.code}</code></pre>`
+          break
+        case 'delimiter':
+          html += '<hr/>'
+          break
+        default:
+          if (block.data.text) {
+            html += `<p>${block.data.text}</p>`
+          }
+      }
+    })
+    return html
+  }
+
   const handleSave = async (publishNow = false) => {
     if (!formData.title.trim()) {
       toast.error('请输入文章标题')
@@ -222,15 +166,13 @@ function AdminThreadEditPage() {
 
     setSaving(true)
     try {
-      const editorData = await editor.save()
-
       const postData = {
         title: formData.title,
         slug: formData.slug,
         excerpt: formData.excerpt,
-        content: JSON.stringify(editorData),
-        categories: formData.category_ids, // API 期望的参数名
-        tags: formData.tag_names, // API 期望的参数名
+        content: content, // 直接保存 HTML
+        categories: formData.category_ids,
+        tags: formData.tag_names,
         status: publishNow ? 'publish' : formData.status
       }
 
@@ -325,9 +267,18 @@ function AdminThreadEditPage() {
               />
             </div>
 
-            {/* Editor.js 编辑器 */}
+            {/* Quill 编辑器 */}
             <div className="mb-6">
-              <div id="editorjs" className="prose max-w-none"></div>
+              <ReactQuill
+                ref={quillRef}
+                theme="snow"
+                value={content}
+                onChange={setContent}
+                modules={modules}
+                formats={formats}
+                placeholder="开始写作..."
+                className="bg-white"
+              />
             </div>
 
             {/* 摘要输入 */}
