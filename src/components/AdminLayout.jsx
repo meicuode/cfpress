@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet, Link } from 'react-router-dom'
 import AdminSidebar from './AdminSidebar'
 
 function AdminLayout() {
@@ -7,11 +7,7 @@ function AdminLayout() {
       <AdminSidebar />
       <main className="flex-1 ml-[200px]">
         {/* Top bar */}
-        <div className="h-[46px] bg-[#23282d] border-b border-[#32373c] flex items-center justify-between px-6 sticky top-0 z-10">
-          <div className="flex items-center gap-4 text-[#eee] text-sm">
-            <span className="text-xl">🏠</span>
-            <span>管理后台</span>
-          </div>
+        <div className="h-[46px] bg-[#23282d] border-b border-[#32373c] flex items-center justify-end px-6 sticky top-0 z-10">
           <div className="flex items-center gap-4 text-[#eee] text-sm">
             <span>您好，admin</span>
           </div>

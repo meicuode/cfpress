@@ -29,11 +29,11 @@ function AdminSidebar() {
   return (
     <aside className="w-[200px] h-screen bg-[#23282d] text-[#eee] flex flex-col fixed left-0 top-0 overflow-y-auto">
       {/* Site branding */}
-      <div className="h-[46px] flex items-center px-4 border-b border-[#32373c] flex-shrink-0">
-        <Link to="/" className="flex items-center gap-2 text-sm text-[#eee] hover:text-white">
-          <span className="text-base">🏠</span>
-          <span>返回站点</span>
+      <div className="h-[46px] flex items-center px-4 border-b border-[#32373c] flex-shrink-0 gap-2 text-sm">
+        <Link to="/" className="text-base text-[#eee] hover:text-white" title="返回首页">
+          🏠
         </Link>
+        <span className="text-[#eee]">后台管理</span>
       </div>
 
       {/* Navigation menu */}
