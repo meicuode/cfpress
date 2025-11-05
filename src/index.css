@@ -270,6 +270,8 @@
   color: #111827;
   font-size: 16px;
   line-height: 1.75;
+  min-height: 500px;
+  padding: 15px;
 }
 
 /* Quill 编辑器 placeholder */

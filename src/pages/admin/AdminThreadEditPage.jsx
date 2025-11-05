@@ -375,7 +375,7 @@ function AdminThreadEditPage() {
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
                 placeholder="添加标签"
-                className="flex-1 px-3 py-1 text-sm border border-gray-300 rounded"
+                className="flex-1 px-3 py-1 text-sm border border-gray-300 rounded text-[#23282d]"
               />
               <button
                 onClick={handleAddTag}
@@ -389,7 +389,7 @@ function AdminThreadEditPage() {
               {formData.tag_names.map(tag => (
                 <span
                   key={tag}
-                  className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-xs rounded"
+                  className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-xs rounded text-[#23282d]"
                 >
                   {tag}
                   <button
