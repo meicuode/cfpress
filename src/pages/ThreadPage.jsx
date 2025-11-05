@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { useToast } from '../contexts/ToastContext'
 import CommentForm from '../components/CommentForm'
@@ -8,6 +8,7 @@ import PostNavigation from '../components/PostNavigation'
 function ThreadPage() {
   const { id } = useParams()
   const toast = useToast()
+  const contentRef = useRef(null)
   const [thread, setThread] = useState(null)
   const [comments, setComments] = useState([])
   const [loading, setLoading] = useState(true)
@@ -47,6 +48,149 @@ function ThreadPage() {
       document.title = 'CFPress'
     }
   }, [thread])
+
+  // 应用代码高亮和添加复制按钮
+  useEffect(() => {
+    const initHighlight = async () => {
+      if (thread && contentRef.current) {
+        // 检查是否有代码块
+        const codeBlocks = contentRef.current.querySelectorAll('pre.ql-syntax, pre code')
+        if (codeBlocks.length === 0) return // 没有代码块，不加载 highlight.js
+
+        // 动态导入 highlight.js 和常用语言
+        const { default: hljs } = await import('highlight.js/lib/core')
+        const [
+          javascript, typescript, python, java, cpp, csharp,
+          go, rust, php, ruby, sql, json, xml, css, bash, yaml, markdown
+        ] = await Promise.all([
+          import('highlight.js/lib/languages/javascript'),
+          import('highlight.js/lib/languages/typescript'),
+          import('highlight.js/lib/languages/python'),
+          import('highlight.js/lib/languages/java'),
+          import('highlight.js/lib/languages/cpp'),
+          import('highlight.js/lib/languages/csharp'),
+          import('highlight.js/lib/languages/go'),
+          import('highlight.js/lib/languages/rust'),
+          import('highlight.js/lib/languages/php'),
+          import('highlight.js/lib/languages/ruby'),
+          import('highlight.js/lib/languages/sql'),
+          import('highlight.js/lib/languages/json'),
+          import('highlight.js/lib/languages/xml'),
+          import('highlight.js/lib/languages/css'),
+          import('highlight.js/lib/languages/bash'),
+          import('highlight.js/lib/languages/yaml'),
+          import('highlight.js/lib/languages/markdown'),
+        ])
+
+        // 动态导入 CSS
+        await import('highlight.js/styles/github-dark.css')
+
+        // 注册语言
+        hljs.registerLanguage('javascript', javascript.default)
+        hljs.registerLanguage('typescript', typescript.default)
+        hljs.registerLanguage('python', python.default)
+        hljs.registerLanguage('java', java.default)
+        hljs.registerLanguage('cpp', cpp.default)
+        hljs.registerLanguage('csharp', csharp.default)
+        hljs.registerLanguage('go', go.default)
+        hljs.registerLanguage('rust', rust.default)
+        hljs.registerLanguage('php', php.default)
+        hljs.registerLanguage('ruby', ruby.default)
+        hljs.registerLanguage('sql', sql.default)
+        hljs.registerLanguage('json', json.default)
+        hljs.registerLanguage('xml', xml.default)
+        hljs.registerLanguage('html', xml.default) // HTML 使用 xml
+        hljs.registerLanguage('css', css.default)
+        hljs.registerLanguage('bash', bash.default)
+        hljs.registerLanguage('shell', bash.default) // shell 使用 bash
+        hljs.registerLanguage('yaml', yaml.default)
+        hljs.registerLanguage('markdown', markdown.default)
+
+        // 对所有代码块应用语法高亮
+        codeBlocks.forEach((block) => {
+          // 如果是 pre 标签，需要包装成 code 标签
+          let codeElement = block
+          let preElement = block
+
+          if (block.tagName === 'PRE') {
+            // Quill 格式: <pre class="ql-syntax">
+            // 创建 code 元素并转移内容
+            if (!block.querySelector('code')) {
+              const code = document.createElement('code')
+              code.textContent = block.textContent
+              block.textContent = ''
+              block.appendChild(code)
+              codeElement = code
+            } else {
+              codeElement = block.querySelector('code')
+            }
+            preElement = block
+          } else {
+            // 标准格式: <pre><code>
+            preElement = block.parentElement
+            codeElement = block
+          }
+
+          // 应用语法高亮
+          if (codeElement && !codeElement.classList.contains('hljs')) {
+            hljs.highlightElement(codeElement)
+          }
+
+          // 为每个代码块添加复制按钮
+          if (preElement && !preElement.querySelector('.copy-button')) {
+            // 创建容器
+            preElement.style.position = 'relative'
+
+            // 创建复制按钮
+            const copyButton = document.createElement('button')
+            copyButton.className = 'copy-button'
+            copyButton.innerHTML = '📋 复制'
+            copyButton.style.cssText = `
+              position: absolute;
+              top: 8px;
+              right: 8px;
+              padding: 4px 12px;
+              background: rgba(255, 255, 255, 0.1);
+              border: 1px solid rgba(255, 255, 255, 0.2);
+              border-radius: 4px;
+              color: #e0e0e0;
+              font-size: 12px;
+              cursor: pointer;
+              transition: all 0.2s;
+              z-index: 1;
+            `
+
+            // 鼠标悬停效果
+            copyButton.onmouseenter = () => {
+              copyButton.style.background = 'rgba(255, 255, 255, 0.2)'
+            }
+            copyButton.onmouseleave = () => {
+              copyButton.style.background = 'rgba(255, 255, 255, 0.1)'
+            }
+
+            // 复制功能
+            copyButton.onclick = async () => {
+              try {
+                await navigator.clipboard.writeText(codeElement.textContent)
+                copyButton.innerHTML = '✅ 已复制'
+                setTimeout(() => {
+                  copyButton.innerHTML = '📋 复制'
+                }, 2000)
+                toast.success('代码已复制到剪贴板')
+              } catch (err) {
+                console.error('复制失败:', err)
+                toast.error('复制失败')
+              }
+            }
+
+            preElement.appendChild(copyButton)
+          }
+        })
+      }
+    }
+
+    initHighlight()
+  }, [thread, toast])
 
   const loadThread = async () => {
     try {
@@ -229,6 +373,7 @@ function ThreadPage() {
             [&_table]:w-full [&_table]:my-4 [&_table]:border-collapse
             [&_th]:border [&_th]:border-border [&_th]:px-4 [&_th]:py-2 [&_th]:bg-bg-primary
             [&_td]:border [&_td]:border-border [&_td]:px-4 [&_td]:py-2"
+          ref={contentRef}
           dangerouslySetInnerHTML={{ __html: thread.content }}
         />
       </article>

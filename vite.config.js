@@ -14,6 +14,8 @@ export default defineConfig({
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
           // Quill 编辑器单独打包（只在管理后台使用）
           'quill-editor': ['react-quill', 'quill'],
+          // highlight.js 语法高亮库单独打包
+          'highlightjs': ['highlight.js'],
         }
       }
     },
