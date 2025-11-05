@@ -251,3 +251,121 @@
 .cdx-list__item {
   color: #111827 !important;
 }
+
+/* Quill Editor Custom Styles */
+.quill {
+  background: white;
+}
+
+/* Quill 编辑器容器 - 占满剩余空间 */
+.quill .ql-container {
+  min-height: 500px;
+  max-height: calc(100vh - 400px);
+  overflow-y: auto;
+  font-size: 16px;
+}
+
+/* Quill 编辑器内容区域 - 文字颜色为深色 */
+.ql-editor {
+  color: #111827;
+  font-size: 16px;
+  line-height: 1.75;
+}
+
+/* Quill 编辑器 placeholder */
+.ql-editor.ql-blank::before {
+  color: #9ca3af;
+  font-style: normal;
+}
+
+/* Quill 工具栏样式 */
+.ql-toolbar {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 0.375rem 0.375rem 0 0;
+}
+
+.ql-container {
+  border: 1px solid #e5e7eb !important;
+  border-top: none !important;
+  border-radius: 0 0 0.375rem 0.375rem;
+}
+
+/* Quill 工具栏按钮 */
+.ql-toolbar button {
+  color: #374151;
+}
+
+.ql-toolbar button:hover {
+  color: #111827;
+}
+
+.ql-toolbar button.ql-active {
+  color: #2563eb;
+}
+
+/* Quill 下拉选择器 */
+.ql-toolbar .ql-stroke {
+  stroke: #374151;
+}
+
+.ql-toolbar .ql-fill {
+  fill: #374151;
+}
+
+.ql-toolbar button:hover .ql-stroke,
+.ql-toolbar button.ql-active .ql-stroke {
+  stroke: #2563eb;
+}
+
+.ql-toolbar button:hover .ql-fill,
+.ql-toolbar button.ql-active .ql-fill {
+  fill: #2563eb;
+}
+
+/* 编辑器内各元素样式 */
+.ql-editor h1,
+.ql-editor h2,
+.ql-editor h3,
+.ql-editor h4,
+.ql-editor h5,
+.ql-editor h6 {
+  font-weight: bold;
+}
+
+/* 移除了 p, li, span 的强制颜色，让用户设置的颜色能够生效 */
+
+.ql-editor strong {
+  font-weight: bold;
+}
+
+.ql-editor a {
+  color: #2563eb !important;
+  text-decoration: underline;
+}
+
+.ql-editor blockquote {
+  border-left: 4px solid #3b82f6;
+  padding-left: 1rem;
+  color: #374151;
+}
+
+.ql-editor code {
+  background-color: #f3f4f6;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+}
+
+.ql-editor pre {
+  background-color: #1f2937;
+  color: #f3f4f6 !important;
+  padding: 1rem;
+  border-radius: 0.375rem;
+  overflow-x: auto;
+}
+
+.ql-editor pre code {
+  background-color: transparent;
+  color: #f3f4f6 !important;
+  padding: 0;
+}

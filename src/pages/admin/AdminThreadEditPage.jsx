@@ -176,8 +176,12 @@ function AdminThreadEditPage() {
         status: publishNow ? 'publish' : formData.status
       }
 
-      const url = id && id !== 'new' ? `/api/threads/${id}` : '/api/threads'
-      const method = id && id !== 'new' ? 'PUT' : 'POST'
+      // 判断是新建还是更新
+      const isNewThread = !id || id === 'new'
+      const url = isNewThread ? '/api/threads' : `/api/threads/${id}`
+      const method = isNewThread ? 'POST' : 'PUT'
+
+      console.log('保存文章 - URL:', url, 'Method:', method, 'ID:', id, 'isNewThread:', isNewThread)
 
       const response = await fetch(url, {
         method,
@@ -186,11 +190,19 @@ function AdminThreadEditPage() {
       })
 
       const data = await response.json()
+      console.log('API 响应:', data)
 
       if (response.ok) {
         toast.success(publishNow ? '文章已发布' : '文章已保存')
-        if (id === 'new') {
-          navigate(`/admin/threads/${data.id}/edit`)
+
+        // 如果是新建文章，跳转到编辑页面
+        if (isNewThread && data.id) {
+          console.log('新建文章，准备跳转到:', `/admin/threads/${data.id}/edit`)
+          // 使用 replace 而不是 push，避免返回时回到 new 页面
+          navigate(`/admin/threads/${data.id}/edit`, { replace: true })
+        } else if (isNewThread && !data.id) {
+          console.error('API 未返回文章 ID:', data)
+          toast.error('保存成功但无法跳转，请刷新页面')
         }
       } else {
         toast.error(data.error || '保存失败')
@@ -278,6 +290,7 @@ function AdminThreadEditPage() {
                 formats={formats}
                 placeholder="开始写作..."
                 className="bg-white"
+                style={{ height: 'auto' }}
               />
             </div>
 
@@ -306,11 +319,12 @@ function AdminThreadEditPage() {
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                className="w-full px-3 py-1 text-sm border border-gray-300 rounded"
+                className="w-full px-3 py-1 text-sm border border-gray-300 rounded text-[#23282d] bg-white"
+                style={{ color: '#23282d' }}
               >
-                <option value="draft">草稿</option>
-                <option value="publish">已发布</option>
-                <option value="private">私密</option>
+                <option value="draft" style={{ color: '#23282d' }}>草稿</option>
+                <option value="publish" style={{ color: '#23282d' }}>已发布</option>
+                <option value="private" style={{ color: '#23282d' }}>私密</option>
               </select>
             </div>
 
