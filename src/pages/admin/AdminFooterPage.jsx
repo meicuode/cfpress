@@ -14,6 +14,7 @@ function AdminFooterPage() {
   })
 
   useEffect(() => {
+    document.title = '页脚设置'
     loadSettings()
   }, [])
 

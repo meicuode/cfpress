@@ -8,6 +8,10 @@ function AdminCommentsPage() {
   const toast = useToast()
   const confirm = useConfirm()
 
+  useEffect(() => {
+    document.title = '评论'
+  }, [])
+
   const [comments, setComments] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedComments, setSelectedComments] = useState([])

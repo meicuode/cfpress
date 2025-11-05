@@ -14,6 +14,7 @@ function AdminAdvancedPage() {
   })
 
   useEffect(() => {
+    document.title = '高级设置'
     loadSettings()
   }, [])
 

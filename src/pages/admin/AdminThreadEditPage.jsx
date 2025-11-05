@@ -61,7 +61,19 @@ function AdminThreadEditPage() {
     } else {
       setLoading(false)
     }
+    console.log('当前文章 ID:', id, '是否显示查看按钮:', id && id !== 'new')
   }, [id])
+
+  // 动态设置页面标题
+  useEffect(() => {
+    if (id && id !== 'new') {
+      // 编辑文章
+      document.title = formData.title ? `编辑 - ${formData.title}` : '编辑文章'
+    } else {
+      // 新建文章
+      document.title = formData.title ? `新建 - ${formData.title}` : '新建文章'
+    }
+  }, [id, formData.title])
 
   const loadCategories = async () => {
     try {
@@ -312,7 +324,20 @@ function AdminThreadEditPage() {
         <div className="w-80 flex flex-col gap-4">
           {/* 发布设置 */}
           <div className="bg-white rounded-lg shadow p-4">
-            <h3 className="font-medium text-[#23282d] mb-3">发布</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-medium text-[#23282d]">发布</h3>
+              {/* 查看文章链接 - 仅在编辑已存在文章时显示 */}
+              {id && id !== 'new' && (
+                <a
+                  href={`/thread/${id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-[#0073aa] hover:text-[#005a87] hover:underline"
+                >
+                  查看文章
+                </a>
+              )}
+            </div>
 
             <div className="mb-4">
               <label className="block text-xs text-[#646970] mb-1">状态</label>
@@ -332,7 +357,7 @@ function AdminThreadEditPage() {
               <button
                 onClick={() => handleSave(false)}
                 disabled={saving}
-                className="flex-1 px-4 py-2 bg-white border border-gray-300 rounded text-sm text-[#23282d] hover:bg-gray-50 disabled:opacity-50"
+                className="flex-1 px-4 py-2 bg-gray-100 border border-gray-300 rounded text-sm text-[#23282d] hover:bg-gray-200 disabled:opacity-50"
               >
                 {saving ? '保存中...' : '保存草稿'}
               </button>

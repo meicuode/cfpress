@@ -18,6 +18,7 @@ function AdminSettingsPage() {
 
   // 加载设置
   useEffect(() => {
+    document.title = '常规设置'
     loadSettings()
   }, [])
 

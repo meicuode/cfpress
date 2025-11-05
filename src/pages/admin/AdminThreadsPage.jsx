@@ -21,6 +21,7 @@ function AdminThreadsPage() {
 
   // 加载分类列表
   useEffect(() => {
+    document.title = '文章'
     loadCategories()
   }, [])
 

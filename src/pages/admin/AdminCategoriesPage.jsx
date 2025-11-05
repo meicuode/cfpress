@@ -1,4 +1,10 @@
+import { useEffect } from 'react'
+
 function AdminCategoriesPage() {
+  useEffect(() => {
+    document.title = '分类管理'
+  }, [])
+
   return (
     <div className="bg-white rounded-lg shadow">
       {/* Header */}

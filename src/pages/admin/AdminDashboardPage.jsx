@@ -1,4 +1,10 @@
+import { useEffect } from 'react'
+
 function AdminDashboardPage() {
+  useEffect(() => {
+    document.title = '仪表盘'
+  }, [])
+
   const stats = {
     totalPosts: 17,
     totalComments: 1,

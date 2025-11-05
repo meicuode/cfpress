@@ -6,6 +6,10 @@ function AdminMenusPage() {
   const toast = useToast()
   const confirm = useConfirm()
 
+  useEffect(() => {
+    document.title = '菜单'
+  }, [])
+
   const [menus, setMenus] = useState([])
   const [loading, setLoading] = useState(true)
   const [editingMenu, setEditingMenu] = useState(null)
