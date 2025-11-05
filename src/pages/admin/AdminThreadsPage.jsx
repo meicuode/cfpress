@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 import { useToast } from '../../contexts/ToastContext'
 import { useConfirm } from '../../contexts/ConfirmContext'
 
@@ -21,7 +22,6 @@ function AdminThreadsPage() {
 
   // 加载分类列表
   useEffect(() => {
-    document.title = '文章'
     loadCategories()
   }, [])
 
@@ -221,7 +221,11 @@ function AdminThreadsPage() {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow">
+    <>
+      <Helmet>
+        <title>文章</title>
+      </Helmet>
+      <div className="bg-white rounded-lg shadow">
       {/* Header */}
       <div className="border-b border-gray-200 p-6 pb-4">
         <div className="flex items-center justify-between mb-4">
@@ -430,6 +434,7 @@ function AdminThreadsPage() {
         <div className="text-sm text-[#646970]">共 {totalCount} 项</div>
       </div>
     </div>
+    </>
   )
 }
 

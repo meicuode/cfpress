@@ -1,13 +1,8 @@
 import { useParams, Link } from 'react-router-dom'
-import { useEffect } from 'react'
+import { Helmet } from 'react-helmet-async'
 
 function TagPage() {
   const { tagName } = useParams()
-
-  // 设置页面标题
-  useEffect(() => {
-    document.title = `#${tagName} - CFPress`
-  }, [tagName])
 
   const posts = [
     { id: 1, title: '文章标题 1', date: '2025-03-18' },
@@ -16,7 +11,11 @@ function TagPage() {
   ]
 
   return (
-    <div className="bg-bg-card backdrop-blur-md rounded-xl border border-border p-10 max-md:p-6">
+    <>
+      <Helmet>
+        <title>#{tagName} - CFPress</title>
+      </Helmet>
+      <div className="bg-bg-card backdrop-blur-md rounded-xl border border-border p-10 max-md:p-6">
       <div className="mb-8 pb-5 border-b border-border">
         <h1 className="text-[28px] font-bold text-accent-blue mb-2">#{tagName}</h1>
         <p className="text-sm text-text-secondary">{posts.length} 篇文章</p>
@@ -37,6 +36,7 @@ function TagPage() {
         ))}
       </div>
     </div>
+    </>
   )
 }
 

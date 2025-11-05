@@ -1,11 +1,6 @@
-import { useEffect } from 'react'
+import { Helmet } from 'react-helmet-async'
 
 function FriendsPage() {
-  // 设置页面标题
-  useEffect(() => {
-    document.title = '友情链接 - CFPress'
-  }, [])
-
   const friends = [
     {
       name: '友链站点 1',
@@ -28,7 +23,11 @@ function FriendsPage() {
   ]
 
   return (
-    <div className="bg-bg-card backdrop-blur-md rounded-xl border border-border p-10 max-md:p-6">
+    <>
+      <Helmet>
+        <title>友情链接 - CFPress</title>
+      </Helmet>
+      <div className="bg-bg-card backdrop-blur-md rounded-xl border border-border p-10 max-md:p-6">
       <div className="mb-8 pb-5 border-b border-border">
         <h1 className="text-[28px] font-bold text-text-primary mb-2">友链</h1>
         <p className="text-sm text-text-secondary">这里是我的朋友们</p>
@@ -63,6 +62,7 @@ function FriendsPage() {
         </p>
       </div>
     </div>
+    </>
   )
 }
 

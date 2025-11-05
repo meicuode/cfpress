@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 import ReactQuill from 'react-quill'
 import 'react-quill/dist/quill.snow.css'
 import { useToast } from '../../contexts/ToastContext'
@@ -63,17 +64,6 @@ function AdminThreadEditPage() {
     }
     console.log('当前文章 ID:', id, '是否显示查看按钮:', id && id !== 'new')
   }, [id])
-
-  // 动态设置页面标题
-  useEffect(() => {
-    if (id && id !== 'new') {
-      // 编辑文章
-      document.title = formData.title ? `编辑 - ${formData.title}` : '编辑文章'
-    } else {
-      // 新建文章
-      document.title = formData.title ? `新建 - ${formData.title}` : '新建文章'
-    }
-  }, [id, formData.title])
 
   const loadCategories = async () => {
     try {
@@ -263,7 +253,16 @@ function AdminThreadEditPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <>
+      <Helmet>
+        <title>
+          {id && id !== 'new'
+            ? (formData.title ? `编辑 - ${formData.title}` : '编辑文章')
+            : (formData.title ? `新建 - ${formData.title}` : '新建文章')
+          }
+        </title>
+      </Helmet>
+      <div className="max-w-7xl mx-auto">
       <div className="flex gap-6">
         {/* 主编辑区域 */}
         <div className="flex-1">
@@ -430,6 +429,7 @@ function AdminThreadEditPage() {
         </div>
       </div>
     </div>
+    </>
   )
 }
 

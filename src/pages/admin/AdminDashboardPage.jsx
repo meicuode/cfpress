@@ -1,10 +1,6 @@
-import { useEffect } from 'react'
+import { Helmet } from 'react-helmet-async'
 
 function AdminDashboardPage() {
-  useEffect(() => {
-    document.title = '仪表盘'
-  }, [])
-
   const stats = {
     totalPosts: 17,
     totalComments: 1,
@@ -13,7 +9,11 @@ function AdminDashboardPage() {
   }
 
   return (
-    <div>
+    <>
+      <Helmet>
+        <title>仪表盘</title>
+      </Helmet>
+      <div>
       <h1 className="text-2xl font-normal text-[#23282d] mb-6">仪表盘</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -98,6 +98,7 @@ function AdminDashboardPage() {
         </div>
       </div>
     </div>
+    </>
   )
 }
 

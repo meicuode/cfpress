@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { HelmetProvider } from 'react-helmet-async'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { ToastProvider } from './contexts/ToastContext'
 import { ConfirmProvider } from './contexts/ConfirmContext'
@@ -23,10 +24,11 @@ import AdminDashboardPage from './pages/admin/AdminDashboardPage'
 
 function App() {
   return (
-    <ThemeProvider>
-      <ToastProvider>
-        <ConfirmProvider>
-          <Router>
+    <HelmetProvider>
+      <ThemeProvider>
+        <ToastProvider>
+          <ConfirmProvider>
+            <Router>
           <Routes>
             {/* Public routes */}
             <Route path="/" element={<Layout />}>
@@ -60,6 +62,7 @@ function App() {
         </ConfirmProvider>
       </ToastProvider>
     </ThemeProvider>
+    </HelmetProvider>
   )
 }
 

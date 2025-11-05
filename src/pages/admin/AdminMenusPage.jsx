@@ -1,14 +1,11 @@
 import { useState, useEffect } from 'react'
+import { Helmet } from 'react-helmet-async'
 import { useToast } from '../../contexts/ToastContext'
 import { useConfirm } from '../../contexts/ConfirmContext'
 
 function AdminMenusPage() {
   const toast = useToast()
   const confirm = useConfirm()
-
-  useEffect(() => {
-    document.title = '菜单'
-  }, [])
 
   const [menus, setMenus] = useState([])
   const [loading, setLoading] = useState(true)
@@ -391,7 +388,11 @@ function AdminMenusPage() {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow">
+    <>
+      <Helmet>
+        <title>菜单</title>
+      </Helmet>
+      <div className="bg-white rounded-lg shadow">
       {/* Header */}
       <div className="border-b border-gray-200 p-6 pb-4">
         <div className="flex items-center justify-between">
@@ -608,6 +609,7 @@ function AdminMenusPage() {
         </div>
       </div>
     </div>
+    </>
   )
 }
 

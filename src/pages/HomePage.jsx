@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 import { getThreadExcerpt } from '../utils/editorjs'
 
 function HomePage() {
@@ -8,11 +9,6 @@ function HomePage() {
   const [page, setPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
   const limit = 10 // 每页显示10篇文章
-
-  // 设置页面标题
-  useEffect(() => {
-    document.title = 'CFPress - 首页'
-  }, [])
 
   useEffect(() => {
     loadThreads()
@@ -67,7 +63,11 @@ function HomePage() {
   }
 
   return (
-    <div className="flex flex-col gap-8">
+    <>
+      <Helmet>
+        <title>CFPress - 首页</title>
+      </Helmet>
+      <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-5">
         {threads.map((thread) => (
           <article
@@ -139,6 +139,7 @@ function HomePage() {
         </div>
       )}
     </div>
+    </>
   )
 }
 

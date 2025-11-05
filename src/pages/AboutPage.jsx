@@ -1,13 +1,12 @@
-import { useEffect } from 'react'
+import { Helmet } from 'react-helmet-async'
 
 function AboutPage() {
-  // 设置页面标题
-  useEffect(() => {
-    document.title = '关于 - CFPress'
-  }, [])
-
   return (
-    <div className="bg-bg-card backdrop-blur-md rounded-xl border border-border p-10 max-md:p-6">
+    <>
+      <Helmet>
+        <title>关于 - CFPress</title>
+      </Helmet>
+      <div className="bg-bg-card backdrop-blur-md rounded-xl border border-border p-10 max-md:p-6">
       <div className="mb-8 pb-5 border-b border-border">
         <h1 className="text-[28px] font-bold text-text-primary">关于</h1>
       </div>
@@ -46,6 +45,7 @@ function AboutPage() {
         </section>
       </div>
     </div>
+    </>
   )
 }
 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Helmet } from 'react-helmet-async'
 import { useToast } from '../../contexts/ToastContext'
 
 function AdminSettingsPage() {
@@ -18,7 +19,6 @@ function AdminSettingsPage() {
 
   // 加载设置
   useEffect(() => {
-    document.title = '常规设置'
     loadSettings()
   }, [])
 
@@ -81,7 +81,11 @@ function AdminSettingsPage() {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow max-w-4xl">
+    <>
+      <Helmet>
+        <title>常规设置</title>
+      </Helmet>
+      <div className="bg-white rounded-lg shadow max-w-4xl">
       {/* Header */}
       <div className="border-b border-gray-200 p-6 pb-4">
         <h1 className="text-2xl font-normal text-[#23282d]">常规选项</h1>
@@ -244,6 +248,7 @@ function AdminSettingsPage() {
         </div>
       </form>
     </div>
+    </>
   )
 }
 

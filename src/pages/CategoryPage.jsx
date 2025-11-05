@@ -1,20 +1,12 @@
 import { Link, useParams } from 'react-router-dom'
 import { useEffect, useState } from 'react'
+import { Helmet } from 'react-helmet-async'
 
 function CategoryPage() {
   const { slug } = useParams()
   const [threads, setThreads] = useState([])
   const [category, setCategory] = useState(null)
   const [loading, setLoading] = useState(true)
-
-  // 设置页面标题
-  useEffect(() => {
-    if (slug) {
-      document.title = `${category?.name || '分类'} - CFPress`
-    } else {
-      document.title = '归档 - CFPress'
-    }
-  }, [slug, category])
 
   // 加载分类文章
   useEffect(() => {
@@ -55,7 +47,11 @@ function CategoryPage() {
   // 如果有 slug 参数，显示分类文章列表
   if (slug) {
     return (
-      <div className="bg-bg-card backdrop-blur-md rounded-xl border border-border p-10 max-md:p-6">
+      <>
+        <Helmet>
+          <title>{category?.name || '分类'} - CFPress</title>
+        </Helmet>
+        <div className="bg-bg-card backdrop-blur-md rounded-xl border border-border p-10 max-md:p-6">
         <div className="mb-8 pb-5 border-b border-border">
           <h1 className="text-[28px] font-bold text-text-primary mb-2">
             {loading ? '加载中...' : category?.name || slug}
@@ -94,6 +90,7 @@ function CategoryPage() {
           </div>
         )}
       </div>
+      </>
     )
   }
 
@@ -125,7 +122,11 @@ function CategoryPage() {
   ]
 
   return (
-    <div className="bg-bg-card backdrop-blur-md rounded-xl border border-border p-10 max-md:p-6">
+    <>
+      <Helmet>
+        <title>归档 - CFPress</title>
+      </Helmet>
+      <div className="bg-bg-card backdrop-blur-md rounded-xl border border-border p-10 max-md:p-6">
       <div className="mb-8 pb-5 border-b border-border">
         <h1 className="text-[28px] font-bold text-text-primary mb-2">归档</h1>
         <p className="text-sm text-text-secondary">按年份查看所有文章</p>
@@ -167,6 +168,7 @@ function CategoryPage() {
         ))}
       </div>
     </div>
+    </>
   )
 }
 

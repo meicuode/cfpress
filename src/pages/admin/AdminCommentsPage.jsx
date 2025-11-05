@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 import { useToast } from '../../contexts/ToastContext'
 import { useConfirm } from '../../contexts/ConfirmContext'
 
@@ -7,10 +8,6 @@ function AdminCommentsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const toast = useToast()
   const confirm = useConfirm()
-
-  useEffect(() => {
-    document.title = '评论'
-  }, [])
 
   const [comments, setComments] = useState([])
   const [loading, setLoading] = useState(true)
@@ -235,7 +232,11 @@ function AdminCommentsPage() {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow">
+    <>
+      <Helmet>
+        <title>评论</title>
+      </Helmet>
+      <div className="bg-white rounded-lg shadow">
       {/* Header */}
       <div className="border-b border-gray-200 p-6 pb-4">
         <h1 className="text-2xl font-normal text-[#23282d] mb-4">评论</h1>
@@ -459,6 +460,7 @@ function AdminCommentsPage() {
         <div className="text-sm text-[#646970]">共 {commentStats.all || 0} 项</div>
       </div>
     </div>
+    </>
   )
 }
 

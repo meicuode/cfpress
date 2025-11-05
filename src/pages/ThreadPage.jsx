@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 import { useToast } from '../contexts/ToastContext'
 import CommentForm from '../components/CommentForm'
 import CommentList from '../components/CommentList'
@@ -37,17 +38,6 @@ function ThreadPage() {
       loadComments()
     }
   }, [id])
-
-  // 设置页面标题
-  useEffect(() => {
-    if (thread) {
-      document.title = `${thread.title} - CFPress`
-    }
-    // 组件卸载时恢复默认标题
-    return () => {
-      document.title = 'CFPress'
-    }
-  }, [thread])
 
   // 应用代码高亮和添加复制按钮
   useEffect(() => {
@@ -322,7 +312,11 @@ function ThreadPage() {
   }
 
   return (
-    <div className="flex flex-col gap-8">
+    <>
+      <Helmet>
+        <title>{thread ? `${thread.title} - CFPress` : 'CFPress'}</title>
+      </Helmet>
+      <div className="flex flex-col gap-8">
       <article className="bg-bg-card backdrop-blur-md rounded-xl border border-border p-10 max-md:p-6">
         <header className="mb-8 pb-5 border-b border-border">
           <h1 className="text-[28px] font-bold text-text-primary mb-4 leading-tight">
@@ -418,6 +412,7 @@ function ThreadPage() {
       {/* TODO: 实现上一篇/下一篇导航 */}
       {/* <PostNavigation prevPost={prevPost} nextPost={nextPost} /> */}
     </div>
+    </>
   )
 }
 

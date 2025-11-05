@@ -1,4 +1,5 @@
 import { useSearchParams } from 'react-router-dom'
+import { Helmet } from 'react-helmet-async'
 
 function SearchPage() {
   const [searchParams] = useSearchParams()
@@ -27,7 +28,11 @@ function SearchPage() {
   ]
 
   return (
-    <div className="flex flex-col gap-6">
+    <>
+      <Helmet>
+        <title>搜索结果 - CFPress</title>
+      </Helmet>
+      <div className="flex flex-col gap-6">
       {/* Search header */}
       <div className="bg-bg-card backdrop-blur-md rounded-xl border border-border p-6">
         <h1 className="text-[24px] font-semibold text-text-primary mb-2">
@@ -89,6 +94,7 @@ function SearchPage() {
         </div>
       )}
     </div>
+    </>
   )
 }
 

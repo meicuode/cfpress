@@ -1,12 +1,12 @@
-import { useEffect } from 'react'
+import { Helmet } from 'react-helmet-async'
 
 function AdminCategoriesPage() {
-  useEffect(() => {
-    document.title = '分类管理'
-  }, [])
-
   return (
-    <div className="bg-white rounded-lg shadow">
+    <>
+      <Helmet>
+        <title>分类管理</title>
+      </Helmet>
+      <div className="bg-white rounded-lg shadow">
       {/* Header */}
       <div className="border-b border-gray-200 p-6 pb-4">
         <h1 className="text-2xl font-normal text-[#23282d] mb-2">分类管理</h1>
@@ -32,6 +32,7 @@ function AdminCategoriesPage() {
         </div>
       </div>
     </div>
+    </>
   )
 }
 
