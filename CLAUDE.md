@@ -145,3 +145,4 @@ All API endpoints are Cloudflare Pages Functions:
 - Image upload with Cloudflare Images
 - 当你改代码的时候给出文字说明你改了什么，为什么这么改
 - 弹出消息都使用吐司的方式
+- init-db.js是负责初始化数据库的，当初次安装或者需要重新更新数据库结构的时候可以调用这个api

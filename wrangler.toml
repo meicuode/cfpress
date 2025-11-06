@@ -6,3 +6,9 @@ compatibility_date = "2025-11-01"
 binding = "DB"
 database_name = "cfpress"
 database_id = "local-db"
+
+# R2 存储桶绑定 (用于文件存储)
+[[r2_buckets]]
+binding = "FILES"
+bucket_name = "cfpress-files"
+preview_bucket_name = "cfpress-files-preview"

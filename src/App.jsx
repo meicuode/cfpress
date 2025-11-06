@@ -21,6 +21,7 @@ import AdminSettingsPage from './pages/admin/AdminSettingsPage'
 import AdminAdvancedPage from './pages/admin/AdminAdvancedPage'
 import AdminFooterPage from './pages/admin/AdminFooterPage'
 import AdminDashboardPage from './pages/admin/AdminDashboardPage'
+import AdminFilesPage from './pages/admin/AdminFilesPage'
 
 function App() {
   return (
@@ -49,6 +50,7 @@ function App() {
               <Route path="threads/new" element={<AdminThreadEditPage />} />
               <Route path="threads/:id/edit" element={<AdminThreadEditPage />} />
               <Route path="comments" element={<AdminCommentsPage />} />
+              <Route path="files" element={<AdminFilesPage />} />
               <Route path="appearance/menus" element={<AdminMenusPage />} />
               <Route path="appearance/footer" element={<AdminFooterPage />} />
               <Route path="appearance/categories" element={<AdminCategoriesPage />} />

@@ -1,0 +1,59 @@
+/**
+ * 数据库初始化 API
+ * GET /api/init-db - 初始化数据库（仅开发环境）
+ *
+ * 使用 batch 一次性执行所有 SQL 语句（带事务）
+ * 失败时自动回滚
+ */
+
+export async function onRequestGet(context) {
+  const { env } = context;
+
+  try {
+    // 读取完整的 schema.sql 内容
+    const schemaSQL = `SCHEMA_CONTENT_PLACEHOLDER`;
+
+    console.log('🔧 开始初始化数据库...');
+
+    // 分割 SQL 语句
+    const statements = schemaSQL
+      .split(';')
+      .map(s => s.trim())
+      .filter(s => s.length > 0 && !s.startsWith('--'));
+
+    console.log(`📝 准备执行 ${statements.length} 条 SQL 语句`);
+
+    // 使用 batch 执行所有语句（自动使用事务）
+    const batch = statements.map(stmt => env.DB.prepare(stmt));
+    const results = await env.DB.batch(batch);
+
+    console.log(`✅ 数据库初始化成功，执行了 ${results.length} 条语句`);
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: `数据库初始化完成，执行了 ${results.length} 条 SQL 语句`,
+        statements_count: results.length,
+        note: '此接口仅用于开发环境'
+      }),
+      {
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
+
+  } catch (error) {
+    console.error('❌ 数据库初始化失败:', error);
+
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error.message,
+        message: '数据库初始化失败，事务已回滚'
+      }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
+  }
+}

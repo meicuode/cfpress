@@ -449,5 +449,58 @@ BEGIN
 END;
 
 -- ============================================================================
+-- 文件管理表 (Files)
+-- 存储上传到 R2 的文件元数据
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS files (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  filename TEXT NOT NULL,              -- 文件名
+  path TEXT NOT NULL DEFAULT '/',      -- 文件路径（文件夹路径）
+  r2_key TEXT NOT NULL UNIQUE,         -- R2 存储的唯一键
+  size INTEGER NOT NULL,               -- 文件大小（字节）
+  mime_type TEXT NOT NULL,             -- MIME 类型
+  extension TEXT,                      -- 文件扩展名
+  is_image INTEGER DEFAULT 0,          -- 是否为图片（1=是, 0=否）
+  is_video INTEGER DEFAULT 0,          -- 是否为视频（1=是, 0=否）
+  thumbnail_key TEXT,                  -- 缩略图的 R2 键（可选）
+  upload_user TEXT,                    -- 上传用户（可选）
+  expires_at DATETIME,                 -- 过期时间（NULL 表示永不过期）
+  is_expired INTEGER DEFAULT 0,        -- 是否已过期（1=是, 0=否）
+  purged INTEGER DEFAULT 0,            -- 是否已物理删除（1=已删除, 0=未删除）
+  purged_at DATETIME,                  -- 物理删除时间
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============================================================================
+-- 文件夹表 (Folders)
+-- 记录文件夹结构
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS folders (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,                  -- 文件夹名称
+  path TEXT NOT NULL UNIQUE,           -- 文件夹完整路径
+  parent_path TEXT DEFAULT '/',        -- 父文件夹路径
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 文件表索引
+CREATE INDEX IF NOT EXISTS idx_files_path ON files(path);
+CREATE INDEX IF NOT EXISTS idx_files_mime_type ON files(mime_type);
+CREATE INDEX IF NOT EXISTS idx_files_created_at ON files(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_files_r2_key ON files(r2_key);
+CREATE INDEX IF NOT EXISTS idx_files_expires_at ON files(expires_at);
+CREATE INDEX IF NOT EXISTS idx_files_is_expired ON files(is_expired);
+CREATE INDEX IF NOT EXISTS idx_files_purged ON files(purged);
+
+-- 文件夹索引
+CREATE INDEX IF NOT EXISTS idx_folders_path ON folders(path);
+CREATE INDEX IF NOT EXISTS idx_folders_parent_path ON folders(parent_path);
+
+-- 插入根文件夹
+INSERT OR IGNORE INTO folders (name, path, parent_path) VALUES ('root', '/', NULL);
+
+-- ============================================================================
 -- 结束
 -- ============================================================================

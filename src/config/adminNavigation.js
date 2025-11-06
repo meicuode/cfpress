@@ -25,6 +25,13 @@ export const adminNavigationConfig = {
       children: []
     },
     {
+      id: 'files',
+      label: '文件管理',
+      icon: '📁',
+      path: '/admin/files',
+      children: []
+    },
+    {
       id: 'appearance',
       label: '外观',
       icon: '🎨',
