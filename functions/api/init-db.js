@@ -419,34 +419,6 @@ export async function onRequestGet(context) {
     // 根文件夹
     sqlStatements.push(`INSERT OR IGNORE INTO folders (name, path, parent_path) VALUES ('root', '/', NULL)`);
 
-    // ========== 触发器 ==========
-
-    // 触发器使用 exec() 单独执行
-    const triggers = [
-      `CREATE TRIGGER IF NOT EXISTS update_threads_timestamp
-AFTER UPDATE ON threads
-FOR EACH ROW
-BEGIN
-  UPDATE threads SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
-END;`,
-
-      `CREATE TRIGGER IF NOT EXISTS increment_thread_comment_count
-AFTER INSERT ON comments
-FOR EACH ROW
-WHEN NEW.status = 'approved'
-BEGIN
-  UPDATE threads SET comment_count = comment_count + 1 WHERE id = NEW.thread_id;
-END;`,
-
-      `CREATE TRIGGER IF NOT EXISTS decrement_thread_comment_count
-AFTER DELETE ON comments
-FOR EACH ROW
-WHEN OLD.status = 'approved'
-BEGIN
-  UPDATE threads SET comment_count = comment_count - 1 WHERE id = OLD.thread_id;
-END;`
-    ];
-
     console.log(`📝 准备执行 ${sqlStatements.length} 条 SQL 语句`);
 
     // 使用 batch 执行所有语句（自动在事务中执行）
@@ -455,26 +427,19 @@ END;`
 
     console.log(`✅ 基础表和数据创建成功，执行了 ${results.length} 条语句`);
 
-    // 单独执行触发器
-    console.log('🔧 开始创建触发器...');
-    let triggersCreated = 0;
-    for (const trigger of triggers) {
-      try {
-        await env.DB.exec(trigger);
-        triggersCreated++;
-      } catch (error) {
-        console.warn(`⚠️ 触发器创建失败: ${error.message}`);
-      }
-    }
+    console.log('ℹ️  触发器逻辑已在应用层实现：');
+    console.log('   - 文章更新时间：threads/[id].js 自动设置 updated_at');
+    console.log('   - 评论计数更新：comments.js 和 admin/comments/[id].js 处理');
+    console.log('   - 回复计数更新：comments.js 和 admin/comments/[id].js 处理');
 
-    console.log(`✅ 数据库初始化完成，创建了 ${triggersCreated} 个触发器`);
+    console.log(`✅ 数据库初始化完成！`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: `数据库初始化完成，执行了 ${results.length} 条 SQL 语句，创建了 ${triggersCreated} 个触发器`,
+        message: `数据库初始化完成，执行了 ${results.length} 条 SQL 语句。触发器逻辑已在应用层实现。`,
         statements: results.length,
-        triggers: triggersCreated
+        note: '触发器逻辑已移至应用代码层，无需数据库触发器'
       }),
       {
         headers: { 'Content-Type': 'application/json' }
