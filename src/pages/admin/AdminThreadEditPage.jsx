@@ -1,9 +1,13 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
-import ReactQuill from 'react-quill'
+import ReactQuill, { Quill } from 'react-quill'
 import 'react-quill/dist/quill.snow.css'
+import ImageResize from 'quill-image-resize-module-react'
 import { useToast } from '../../contexts/ToastContext'
+
+// 注册图片调整大小模块
+Quill.register('modules/imageResize', ImageResize)
 
 function AdminThreadEditPage() {
   const { id } = useParams()
@@ -50,6 +54,10 @@ function AdminThreadEditPage() {
           fileInputRef.current?.click()
         }
       }
+    },
+    imageResize: {
+      parchment: Quill.import('parchment'),
+      modules: ['Resize', 'DisplaySize', 'Toolbar']
     }
   }), []) // 空依赖数组，只创建一次
 
