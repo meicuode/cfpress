@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { useToast } from '../../contexts/ToastContext'
 import { useConfirm } from '../../contexts/ConfirmContext'
@@ -6,15 +7,25 @@ import { useConfirm } from '../../contexts/ConfirmContext'
 function AdminFilesPage() {
   const toast = useToast()
   const confirm = useConfirm()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const [files, setFiles] = useState([])
   const [folders, setFolders] = useState([])
   const [loading, setLoading] = useState(true)
-  const [currentPath, setCurrentPath] = useState('/')
+  // 从 URL 读取路径，如果没有则默认为 '/'
+  const [currentPath, setCurrentPath] = useState(searchParams.get('path') || '/')
   const [uploading, setUploading] = useState(false)
   const [viewMode, setViewMode] = useState('grid') // grid or list
   const [filterType, setFilterType] = useState('all') // all, image, video, document
   const [previewFile, setPreviewFile] = useState(null)
+
+  // 监听 URL 参数变化，同步到 currentPath
+  useEffect(() => {
+    const pathFromUrl = searchParams.get('path') || '/'
+    if (pathFromUrl !== currentPath) {
+      setCurrentPath(pathFromUrl)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     loadFiles()
@@ -145,13 +156,18 @@ function AdminFilesPage() {
 
   const navigateToFolder = (folderPath) => {
     setCurrentPath(folderPath)
+    // 更新 URL 参数
+    setSearchParams({ path: folderPath })
   }
 
   const navigateUp = () => {
     if (currentPath === '/') return
     const parts = currentPath.split('/').filter(Boolean)
     parts.pop()
-    setCurrentPath(parts.length === 0 ? '/' : '/' + parts.join('/'))
+    const newPath = parts.length === 0 ? '/' : '/' + parts.join('/')
+    setCurrentPath(newPath)
+    // 更新 URL 参数
+    setSearchParams({ path: newPath })
   }
 
   const openPreview = (file) => {
@@ -200,7 +216,7 @@ function AdminFilesPage() {
           {/* Path breadcrumb */}
           <div className="flex items-center gap-2 text-sm text-[#646970] mb-4">
             <button
-              onClick={() => setCurrentPath('/')}
+              onClick={() => navigateToFolder('/')}
               className="hover:text-[#0073aa] hover:underline"
             >
               🏠 根目录
@@ -211,7 +227,7 @@ function AdminFilesPage() {
                 <button
                   onClick={() => {
                     const path = '/' + arr.slice(0, index + 1).join('/')
-                    setCurrentPath(path)
+                    navigateToFolder(path)
                   }}
                   className="hover:text-[#0073aa] hover:underline"
                 >
