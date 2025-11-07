@@ -15,6 +15,7 @@ function ThreadPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [replyTo, setReplyTo] = useState(null) // 回复的评论 ID
+  const [lightboxImage, setLightboxImage] = useState(null) // 图片预览
 
   // 格式化日期
   const formatDate = (dateString) => {
@@ -181,6 +182,51 @@ function ThreadPage() {
 
     initHighlight()
   }, [thread, toast])
+
+  // 为文章内容中的图片添加点击放大功能
+  useEffect(() => {
+    if (thread && contentRef.current) {
+      const images = contentRef.current.querySelectorAll('img')
+
+      const handleImageClick = (e) => {
+        const img = e.target
+        if (img.tagName === 'IMG') {
+          setLightboxImage(img.src)
+        }
+      }
+
+      images.forEach(img => {
+        img.style.cursor = 'pointer'
+        img.addEventListener('click', handleImageClick)
+      })
+
+      return () => {
+        images.forEach(img => {
+          img.removeEventListener('click', handleImageClick)
+        })
+      }
+    }
+  }, [thread])
+
+  // 处理ESC键关闭图片预览
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape' && lightboxImage) {
+        setLightboxImage(null)
+      }
+    }
+
+    if (lightboxImage) {
+      document.addEventListener('keydown', handleEscape)
+      // 防止背景滚动
+      document.body.style.overflow = 'hidden'
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape)
+      document.body.style.overflow = 'unset'
+    }
+  }, [lightboxImage])
 
   const loadThread = async () => {
     try {
@@ -412,6 +458,28 @@ function ThreadPage() {
       {/* TODO: 实现上一篇/下一篇导航 */}
       {/* <PostNavigation prevPost={prevPost} nextPost={nextPost} /> */}
     </div>
+
+    {/* 图片预览 Lightbox */}
+    {lightboxImage && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm"
+        onClick={() => setLightboxImage(null)}
+      >
+        <button
+          className="absolute top-4 right-4 text-white text-4xl hover:text-gray-300 transition-colors z-10"
+          onClick={() => setLightboxImage(null)}
+          aria-label="关闭"
+        >
+          ×
+        </button>
+        <img
+          src={lightboxImage}
+          alt="预览"
+          className="max-w-[90vw] max-h-[90vh] object-contain"
+          onClick={(e) => e.stopPropagation()}
+        />
+      </div>
+    )}
     </>
   )
 }
