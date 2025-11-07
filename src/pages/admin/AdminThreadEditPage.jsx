@@ -215,7 +215,8 @@ function AdminThreadEditPage() {
     'blockquote', 'code-block',
     'list', 'bullet', 'indent',
     'align',
-    'link', 'image', 'video'
+    'link', 'image', 'video',
+    'width', 'height', 'style'  // 支持图片调整大小
   ]
 
   useEffect(() => {
