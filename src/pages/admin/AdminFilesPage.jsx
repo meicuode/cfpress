@@ -683,7 +683,7 @@ function AdminFilesPage() {
 
               {/* File Type Breakdown */}
               {storageStats.fileTypes && storageStats.fileTypes.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
                   {storageStats.fileTypes.map((type) => (
                     <div key={type.type} className="bg-gray-50 rounded p-2">
                       <div className="flex items-center justify-between">
@@ -699,6 +699,31 @@ function AdminFilesPage() {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {/* R2 Operations Stats */}
+              {storageStats.r2Operations && (
+                <div className="border-t border-gray-200 pt-3">
+                  <div className="text-xs font-medium text-[#23282d] mb-2">
+                    📊 R2 操作统计（最近7天）
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    <div className="bg-blue-50 rounded p-2">
+                      <div className="text-xs text-[#646970]">总操作次数</div>
+                      <div className="text-lg font-bold text-blue-600">
+                        {storageStats.r2Operations.totalLast7Days.toLocaleString()}
+                      </div>
+                    </div>
+                    {Object.entries(storageStats.r2Operations.byType || {}).map(([type, count]) => (
+                      <div key={type} className="bg-gray-50 rounded p-2">
+                        <div className="text-xs text-[#646970]">{type}</div>
+                        <div className="text-lg font-bold text-[#23282d]">
+                          {count.toLocaleString()}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

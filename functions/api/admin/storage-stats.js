@@ -48,6 +48,76 @@ export async function onRequestGet({ env }) {
       GROUP BY type
     `).all();
 
+    // 获取 R2 操作统计（需要 CLOUDFLARE_API_TOKEN 和 ACCOUNT_ID）
+    let r2Operations = null;
+    if (env.CLOUDFLARE_API_TOKEN && env.CLOUDFLARE_ACCOUNT_ID && env.R2_BUCKET_NAME) {
+      try {
+        // 使用 GraphQL Analytics API 查询 R2 操作次数
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - 7); // 最近7天
+
+        const graphqlQuery = {
+          query: `
+            query {
+              viewer {
+                accounts(filter: { accountTag: "${env.CLOUDFLARE_ACCOUNT_ID}" }) {
+                  r2OperationsAdaptiveGroups(
+                    filter: {
+                      date_geq: "${startDate.toISOString().split('T')[0]}"
+                      date_leq: "${endDate.toISOString().split('T')[0]}"
+                      bucketName: "${env.R2_BUCKET_NAME}"
+                    }
+                    limit: 1000
+                  ) {
+                    sum {
+                      requests
+                    }
+                    dimensions {
+                      actionType
+                    }
+                  }
+                }
+              }
+            }
+          `
+        };
+
+        const response = await fetch('https://api.cloudflare.com/client/v4/graphql', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${env.CLOUDFLARE_API_TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(graphqlQuery)
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const operations = data?.data?.viewer?.accounts?.[0]?.r2OperationsAdaptiveGroups || [];
+
+          // 汇总操作次数
+          let totalOperations = 0;
+          const operationsByType = {};
+
+          operations.forEach(op => {
+            const count = op.sum.requests || 0;
+            const type = op.dimensions.actionType;
+            totalOperations += count;
+            operationsByType[type] = (operationsByType[type] || 0) + count;
+          });
+
+          r2Operations = {
+            totalLast7Days: totalOperations,
+            byType: operationsByType
+          };
+        }
+      } catch (error) {
+        console.error('获取 R2 操作统计失败:', error);
+        // 失败时不影响其他统计数据的返回
+      }
+    }
+
     return new Response(JSON.stringify({
       success: true,
       stats: {
@@ -56,7 +126,8 @@ export async function onRequestGet({ env }) {
         usedSpace: usedSpace,
         totalSpace: totalSpace,
         usagePercent: totalSpace > 0 ? (usedSpace / totalSpace * 100).toFixed(2) : 0,
-        fileTypes: fileTypeStats.results || []
+        fileTypes: fileTypeStats.results || [],
+        r2Operations: r2Operations
       }
     }), {
       status: 200,
@@ -69,7 +140,8 @@ export async function onRequestGet({ env }) {
     console.error('获取存储统计失败:', error);
     return new Response(JSON.stringify({
       success: false,
-      error: '获取存储统计失败'
+      error: '获取存储统计失败',
+      details: error.message
     }), {
       status: 500,
       headers: {
