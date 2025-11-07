@@ -18,6 +18,9 @@ function AdminFilesPage() {
   const [viewMode, setViewMode] = useState('grid') // grid or list
   const [filterType, setFilterType] = useState('all') // all, image, video, document
   const [previewFile, setPreviewFile] = useState(null)
+  const [showUploadModal, setShowUploadModal] = useState(false)
+  const [uploadQueue, setUploadQueue] = useState([]) // 上传队列
+  const [dragActive, setDragActive] = useState(false)
 
   // 监听 URL 参数变化，同步到 currentPath
   useEffect(() => {
@@ -51,39 +54,172 @@ function AdminFilesPage() {
     }
   }
 
-  const handleUpload = async (event) => {
-    const fileList = event.target.files
-    if (!fileList || fileList.length === 0) return
+  // 处理文件添加到上传队列
+  const handleFilesAdded = (fileList) => {
+    const newFiles = Array.from(fileList).map((file, index) => ({
+      id: Date.now() + index,
+      file: file,
+      name: file.name,
+      size: file.size,
+      progress: 0,
+      status: 'pending', // pending, uploading, success, error
+      error: null
+    }))
+    setUploadQueue(prev => [...prev, ...newFiles])
+  }
 
-    setUploading(true)
+  // 上传单个文件
+  const uploadSingleFile = async (queueItem) => {
+    // 更新状态为上传中
+    setUploadQueue(prev => prev.map(item =>
+      item.id === queueItem.id
+        ? { ...item, status: 'uploading', progress: 0 }
+        : item
+    ))
+
     const formData = new FormData()
-
-    for (let i = 0; i < fileList.length; i++) {
-      formData.append('files', fileList[i])
-    }
+    formData.append('files', queueItem.file)
     formData.append('path', currentPath)
     formData.append('uploadUser', 'admin')
 
     try {
-      const response = await fetch('/api/admin/files/upload', {
-        method: 'POST',
-        body: formData
+      const xhr = new XMLHttpRequest()
+
+      // 监听上传进度
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+          const progress = Math.round((e.loaded / e.total) * 100)
+          setUploadQueue(prev => prev.map(item =>
+            item.id === queueItem.id
+              ? { ...item, progress }
+              : item
+          ))
+        }
       })
 
-      const data = await response.json()
-      if (response.ok) {
-        toast.success(data.message || `上传成功 ${data.uploaded.length} 个文件`)
-        loadFiles()
-        event.target.value = '' // 清空 input
-      } else {
-        toast.error(data.error || '上传失败')
-      }
+      // 上传完成
+      xhr.addEventListener('load', () => {
+        if (xhr.status === 200) {
+          const data = JSON.parse(xhr.responseText)
+          if (data.uploaded && data.uploaded.length > 0) {
+            setUploadQueue(prev => prev.map(item =>
+              item.id === queueItem.id
+                ? { ...item, status: 'success', progress: 100 }
+                : item
+            ))
+            // 刷新文件列表
+            loadFiles()
+          } else {
+            setUploadQueue(prev => prev.map(item =>
+              item.id === queueItem.id
+                ? { ...item, status: 'error', error: data.error || '上传失败' }
+                : item
+            ))
+          }
+        } else {
+          setUploadQueue(prev => prev.map(item =>
+            item.id === queueItem.id
+              ? { ...item, status: 'error', error: '上传失败' }
+              : item
+          ))
+        }
+      })
+
+      // 上传出错
+      xhr.addEventListener('error', () => {
+        setUploadQueue(prev => prev.map(item =>
+          item.id === queueItem.id
+            ? { ...item, status: 'error', error: '网络错误' }
+            : item
+        ))
+      })
+
+      xhr.open('POST', '/api/admin/files/upload')
+      xhr.send(formData)
     } catch (error) {
       console.error('上传失败:', error)
-      toast.error('上传失败')
-    } finally {
-      setUploading(false)
+      setUploadQueue(prev => prev.map(item =>
+        item.id === queueItem.id
+          ? { ...item, status: 'error', error: error.message }
+          : item
+      ))
     }
+  }
+
+  // 监听队列变化，自动上传pending状态的文件
+  useEffect(() => {
+    const pendingFiles = uploadQueue.filter(item => item.status === 'pending')
+    if (pendingFiles.length > 0) {
+      // 延迟一点开始上传，让UI先更新
+      setTimeout(() => {
+        pendingFiles.forEach(item => {
+          uploadSingleFile(item)
+        })
+      }, 100)
+    }
+  }, [uploadQueue.length])
+
+  // 处理文件输入
+  const handleFileInput = (event) => {
+    const fileList = event.target.files
+    if (!fileList || fileList.length === 0) return
+    handleFilesAdded(fileList)
+    event.target.value = '' // 清空 input
+  }
+
+  // 处理拖拽进入
+  const handleDragEnter = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragActive(true)
+  }
+
+  // 处理拖拽离开
+  const handleDragLeave = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragActive(false)
+  }
+
+  // 处理拖拽悬停
+  const handleDragOver = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  // 处理文件拖放
+  const handleDrop = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragActive(false)
+
+    const fileList = e.dataTransfer.files
+    if (fileList && fileList.length > 0) {
+      handleFilesAdded(fileList)
+    }
+  }
+
+  // 打开上传弹窗
+  const openUploadModal = () => {
+    setShowUploadModal(true)
+    setUploadQueue([])
+  }
+
+  // 关闭上传弹窗
+  const closeUploadModal = () => {
+    // 检查是否有正在上传的文件
+    const uploading = uploadQueue.some(item => item.status === 'uploading')
+    if (uploading) {
+      const confirmed = window.confirm('还有文件正在上传，确定要关闭吗？')
+      if (!confirmed) return
+    }
+    setShowUploadModal(false)
+    setUploadQueue([])
+  }
+
+  // 移除队列中的文件
+  const removeFromQueue = (id) => {
+    setUploadQueue(prev => prev.filter(item => item.id !== id))
   }
 
   const handleDelete = async (file) => {
@@ -182,6 +318,19 @@ function AdminFilesPage() {
     setPreviewFile(null)
   }
 
+  // 下载文件
+  const handleDownload = (file) => {
+    // 使用 download=1 参数来触发下载
+    const downloadUrl = `${file.url}?download=1`
+    const link = document.createElement('a')
+    link.href = downloadUrl
+    link.download = file.filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    toast.success('开始下载文件')
+  }
+
   return (
     <>
       <Helmet>
@@ -200,16 +349,12 @@ function AdminFilesPage() {
               >
                 📁 新建文件夹
               </button>
-              <label className="px-4 py-2 bg-[#0073aa] text-white rounded text-sm hover:bg-[#005a87] cursor-pointer flex items-center">
-                {uploading ? '上传中...' : '📤 上传文件'}
-                <input
-                  type="file"
-                  multiple
-                  onChange={handleUpload}
-                  disabled={uploading}
-                  className="hidden"
-                />
-              </label>
+              <button
+                onClick={openUploadModal}
+                className="px-4 py-2 bg-[#0073aa] text-white rounded text-sm hover:bg-[#005a87] flex items-center"
+              >
+                📤 上传文件
+              </button>
             </div>
           </div>
 
@@ -334,12 +479,28 @@ function AdminFilesPage() {
                         <div className="text-xs text-[#646970]">{formatSize(file.size)}</div>
                       </div>
 
-                      <button
-                        onClick={() => handleDelete(file)}
-                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-red-600 text-white px-2 py-1 rounded text-xs hover:bg-red-700 transition-opacity"
-                      >
-                        删除
-                      </button>
+                      <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDownload(file)
+                          }}
+                          className="bg-[#0073aa] text-white px-2 py-1 rounded text-xs hover:bg-[#005a87]"
+                          title="下载"
+                        >
+                          ⬇️
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDelete(file)
+                          }}
+                          className="bg-red-600 text-white px-2 py-1 rounded text-xs hover:bg-red-700"
+                          title="删除"
+                        >
+                          🗑️
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -385,12 +546,20 @@ function AdminFilesPage() {
                         <td className="px-4 py-3 text-sm text-[#646970]">{file.mimeType}</td>
                         <td className="px-4 py-3 text-sm text-[#646970]">{formatDate(file.createdAt)}</td>
                         <td className="px-4 py-3">
-                          <button
-                            onClick={() => handleDelete(file)}
-                            className="text-sm text-red-600 hover:text-red-800 hover:underline"
-                          >
-                            删除
-                          </button>
+                          <div className="flex gap-3">
+                            <button
+                              onClick={() => handleDownload(file)}
+                              className="text-sm text-[#0073aa] hover:text-[#005a87] hover:underline"
+                            >
+                              下载
+                            </button>
+                            <button
+                              onClick={() => handleDelete(file)}
+                              className="text-sm text-red-600 hover:text-red-800 hover:underline"
+                            >
+                              删除
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -442,6 +611,140 @@ function AdminFilesPage() {
             <div className="mt-4 text-white text-center">
               <p>{previewFile.filename}</p>
               <p className="text-sm text-gray-300">{formatSize(previewFile.size)}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Upload Modal */}
+      {showUploadModal && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={closeUploadModal}
+        >
+          <div
+            className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[80vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-[#23282d]">上传文件到 {currentPath}</h2>
+              <button
+                onClick={closeUploadModal}
+                className="text-[#646970] hover:text-[#23282d] text-2xl"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Drop Zone */}
+            <div
+              className={`m-6 border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                dragActive
+                  ? 'border-[#0073aa] bg-blue-50'
+                  : 'border-gray-300 hover:border-[#0073aa]'
+              }`}
+              onDragEnter={handleDragEnter}
+              onDragLeave={handleDragLeave}
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
+            >
+              <input
+                type="file"
+                multiple
+                onChange={handleFileInput}
+                className="hidden"
+                id="file-upload"
+              />
+              <label
+                htmlFor="file-upload"
+                className="cursor-pointer"
+              >
+                <div className="text-6xl mb-4">📁</div>
+                <p className="text-lg text-[#23282d] mb-2">
+                  拖拽文件到这里，或点击选择文件
+                </p>
+                <p className="text-sm text-[#646970]">
+                  支持多文件上传
+                </p>
+              </label>
+            </div>
+
+            {/* Upload Queue */}
+            {uploadQueue.length > 0 && (
+              <div className="flex-1 overflow-y-auto px-6 pb-6">
+                <h3 className="text-sm font-medium text-[#23282d] mb-3">
+                  上传队列 ({uploadQueue.length} 个文件)
+                </h3>
+                <div className="space-y-3">
+                  {uploadQueue.map((item) => (
+                    <div
+                      key={item.id}
+                      className="border border-gray-200 rounded-lg p-4"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-[#23282d] truncate">
+                            {item.name}
+                          </p>
+                          <p className="text-xs text-[#646970]">
+                            {formatSize(item.size)}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 ml-4">
+                          {item.status === 'pending' && (
+                            <span className="text-xs text-[#646970]">等待中...</span>
+                          )}
+                          {item.status === 'uploading' && (
+                            <span className="text-xs text-[#0073aa]">上传中...</span>
+                          )}
+                          {item.status === 'success' && (
+                            <span className="text-xs text-green-600">✓ 成功</span>
+                          )}
+                          {item.status === 'error' && (
+                            <span className="text-xs text-red-600">✗ 失败</span>
+                          )}
+                          {(item.status === 'pending' || item.status === 'error') && (
+                            <button
+                              onClick={() => removeFromQueue(item.id)}
+                              className="text-xs text-red-600 hover:text-red-800"
+                            >
+                              移除
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Progress Bar */}
+                      {(item.status === 'uploading' || item.status === 'success') && (
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className={`h-2 rounded-full transition-all ${
+                              item.status === 'success' ? 'bg-green-600' : 'bg-[#0073aa]'
+                            }`}
+                            style={{ width: `${item.progress}%` }}
+                          ></div>
+                        </div>
+                      )}
+
+                      {/* Error Message */}
+                      {item.status === 'error' && item.error && (
+                        <p className="text-xs text-red-600 mt-1">{item.error}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Modal Footer */}
+            <div className="border-t border-gray-200 p-4 flex justify-end gap-2">
+              <button
+                onClick={closeUploadModal}
+                className="px-4 py-2 bg-white border border-gray-300 text-[#23282d] rounded text-sm hover:bg-gray-50"
+              >
+                关闭
+              </button>
             </div>
           </div>
         </div>
