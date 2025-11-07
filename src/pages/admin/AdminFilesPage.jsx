@@ -21,6 +21,8 @@ function AdminFilesPage() {
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [uploadQueue, setUploadQueue] = useState([]) // 上传队列
   const [dragActive, setDragActive] = useState(false)
+  const [storageStats, setStorageStats] = useState(null)
+  const [statsExpanded, setStatsExpanded] = useState(false)
 
   // 监听 URL 参数变化，同步到 currentPath
   useEffect(() => {
@@ -32,6 +34,7 @@ function AdminFilesPage() {
 
   useEffect(() => {
     loadFiles()
+    loadStorageStats()
   }, [currentPath, filterType])
 
   const loadFiles = async () => {
@@ -51,6 +54,19 @@ function AdminFilesPage() {
       toast.error('加载文件失败')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadStorageStats = async () => {
+    try {
+      const response = await fetch('/api/admin/storage-stats')
+      const data = await response.json()
+
+      if (response.ok) {
+        setStorageStats(data.stats)
+      }
+    } catch (error) {
+      console.error('加载存储统计失败:', error)
     }
   }
 
@@ -107,8 +123,9 @@ function AdminFilesPage() {
                 ? { ...item, status: 'success', progress: 100 }
                 : item
             ))
-            // 刷新文件列表
+            // 刷新文件列表和存储统计
             loadFiles()
+            loadStorageStats()
           } else {
             setUploadQueue(prev => prev.map(item =>
               item.id === queueItem.id
@@ -241,6 +258,7 @@ function AdminFilesPage() {
       if (response.ok) {
         toast.success('文件已删除')
         loadFiles()
+        loadStorageStats()
       } else {
         toast.error(data.error || '删除失败')
       }
@@ -337,7 +355,8 @@ function AdminFilesPage() {
         <title>文件管理</title>
       </Helmet>
 
-      <div className="bg-white rounded-lg shadow">
+      {/* Main content wrapper */}
+      <div className="bg-white rounded-lg shadow" style={{ paddingBottom: statsExpanded ? '320px' : '60px' }}>
         {/* Header */}
         <div className="border-b border-gray-200 p-6">
           <div className="flex items-center justify-between mb-4">
@@ -576,6 +595,116 @@ function AdminFilesPage() {
           )}
         </div>
       </div>
+
+      {/* Storage Stats Bar - Fixed at viewport bottom, aligned with file panel */}
+      {storageStats && (
+        <div className="fixed bottom-2 bg-white border-t border-gray-200 shadow-lg z-40 rounded-b-lg" style={{ left: '208px', right: '8px' }}>
+          {/* Collapse/Expand Bar */}
+          <button
+            onClick={() => setStatsExpanded(!statsExpanded)}
+            className="w-full flex items-center justify-between px-6 py-3 hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-medium text-[#23282d]">
+                💾 存储空间统计
+              </span>
+              {!statsExpanded && (
+                <span className="text-xs text-[#646970]">
+                  {storageStats.totalFiles} 个文件 · {formatSize(storageStats.usedSpace)} / {formatSize(storageStats.totalSpace)} ({storageStats.usagePercent}%)
+                </span>
+              )}
+            </div>
+            <span className="text-[#646970]">
+              {statsExpanded ? '▼' : '▲'}
+            </span>
+          </button>
+
+          {/* Expanded Content */}
+          {statsExpanded && (
+            <div className="px-6 pb-4 pt-2 border-t border-gray-100">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                {/* Total Files */}
+                <div className="bg-blue-50 rounded-lg p-3">
+                  <div className="text-xs text-[#646970] mb-1">总文件数</div>
+                  <div className="text-2xl font-bold text-[#0073aa]">
+                    {storageStats.totalFiles}
+                  </div>
+                </div>
+
+                {/* Total Folders */}
+                <div className="bg-yellow-50 rounded-lg p-3">
+                  <div className="text-xs text-[#646970] mb-1">文件夹数</div>
+                  <div className="text-2xl font-bold text-yellow-600">
+                    {storageStats.totalFolders}
+                  </div>
+                </div>
+
+                {/* Used Space */}
+                <div className="bg-green-50 rounded-lg p-3">
+                  <div className="text-xs text-[#646970] mb-1">已使用</div>
+                  <div className="text-2xl font-bold text-green-600">
+                    {formatSize(storageStats.usedSpace)}
+                  </div>
+                </div>
+
+                {/* Total Space */}
+                <div className="bg-purple-50 rounded-lg p-3">
+                  <div className="text-xs text-[#646970] mb-1">总容量</div>
+                  <div className="text-2xl font-bold text-purple-600">
+                    {formatSize(storageStats.totalSpace)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="mb-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-[#646970]">使用率</span>
+                  <span className="text-xs font-medium text-[#23282d]">
+                    {storageStats.usagePercent}%
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                  <div
+                    className={`h-3 rounded-full transition-all ${
+                      storageStats.usagePercent > 90
+                        ? 'bg-red-600'
+                        : storageStats.usagePercent > 70
+                        ? 'bg-yellow-500'
+                        : 'bg-green-600'
+                    }`}
+                    style={{
+                      width: `${Math.max(storageStats.usagePercent, 0.5)}%`,
+                      minWidth: storageStats.usagePercent > 0 ? '4px' : '0'
+                    }}
+                  ></div>
+                </div>
+              </div>
+
+              {/* File Type Breakdown */}
+              {storageStats.fileTypes && storageStats.fileTypes.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {storageStats.fileTypes.map((type) => (
+                    <div key={type.type} className="bg-gray-50 rounded p-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-[#646970]">
+                          {type.type === 'image' ? '🖼️ 图片' : type.type === 'video' ? '🎬 视频' : '📄 文档'}
+                        </span>
+                        <span className="text-xs font-medium text-[#23282d]">
+                          {type.count} 个
+                        </span>
+                      </div>
+                      <div className="text-xs text-[#646970] mt-1">
+                        {formatSize(type.total_size)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Preview Modal */}
       {previewFile && (
