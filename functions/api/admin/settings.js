@@ -59,6 +59,7 @@ export async function onRequestPost(context) {
       site_title: 'string',
       site_subtitle: 'string',
       site_url: 'string',
+      site_icon: 'string',
       admin_email: 'string',
       site_language: 'string',
       allow_registration: 'boolean',

@@ -1,11 +1,19 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { useToast } from '../../contexts/ToastContext'
+import FilePickerModal from '../../components/FilePickerModal'
 
 function AdminSettingsPage() {
   const toast = useToast()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+
+  // 文件上传相关
+  const [uploading, setUploading] = useState(false)
+  const [showFilePicker, setShowFilePicker] = useState(false)
+  const [filePickerTarget, setFilePickerTarget] = useState(null) // 'site_icon' or 'author_avatar'
+  const siteIconInputRef = useRef(null)
+  const avatarInputRef = useRef(null)
 
   // 默认社交平台配置
   const defaultSocialPlatforms = [
@@ -19,6 +27,7 @@ function AdminSettingsPage() {
     site_title: 'cfpress',
     site_subtitle: 'cfpress,一个自由的站点',
     site_url: '',
+    site_icon: '', // 站点图标
     admin_email: '',
     allow_registration: false,
     default_user_role: 'subscriber',
@@ -124,6 +133,76 @@ function AdminSettingsPage() {
     setSocialPlatforms(prev => prev.filter((_, i) => i !== index))
   }
 
+  // 处理本地文件上传
+  const handleLocalFileUpload = async (event, target) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // 验证文件类型
+    if (!file.type.startsWith('image/')) {
+      toast.error('请选择图片文件')
+      return
+    }
+
+    // 验证文件大小 (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('文件大小不能超过 5MB')
+      return
+    }
+
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('files', file) // 注意：参数名是 'files'
+      formData.append('path', target === 'site_icon' ? '/icons' : '/avatars')
+      formData.append('uploadUser', 'admin')
+
+      const response = await fetch('/api/admin/files/upload', {
+        method: 'POST',
+        body: formData
+      })
+
+      const data = await response.json()
+      if (response.ok && data.success && data.uploaded && data.uploaded.length > 0) {
+        const uploadedFile = data.uploaded[0]
+        // 更新对应的设置字段
+        if (target === 'site_icon') {
+          handleChange('site_icon', uploadedFile.url)
+        } else if (target === 'author_avatar') {
+          handleChange('author_avatar', uploadedFile.url)
+        }
+        toast.success('上传成功')
+      } else {
+        toast.error(data.error || '上传失败')
+      }
+    } catch (error) {
+      console.error('Upload error:', error)
+      toast.error('上传失败')
+    } finally {
+      setUploading(false)
+      // 重置 input
+      event.target.value = ''
+    }
+  }
+
+  // 打开文件选择器 (从R2选择)
+  const handleOpenFilePicker = (target) => {
+    setFilePickerTarget(target)
+    setShowFilePicker(true)
+  }
+
+  // 从R2选择文件
+  const handleSelectFromR2 = (file) => {
+    if (filePickerTarget === 'site_icon') {
+      handleChange('site_icon', file.url)
+    } else if (filePickerTarget === 'author_avatar') {
+      handleChange('author_avatar', file.url)
+    }
+    toast.success('已选择文件')
+    setShowFilePicker(false)
+    setFilePickerTarget(null)
+  }
+
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow max-w-4xl p-6">
@@ -184,10 +263,46 @@ function AdminSettingsPage() {
             <label className="text-sm font-medium text-[#23282d] pt-2">
               站点图标
             </label>
-            <div className="flex flex-col gap-2">
-              <div className="w-[200px] h-[100px] border-2 border-dashed border-gray-300 rounded flex items-center justify-center text-sm text-[#646970]">
-                选择一个站点图标
+            <div className="flex flex-col gap-3">
+              {/* 图标预览区域 */}
+              <div className="w-[200px] h-[100px] border-2 border-dashed border-gray-300 rounded flex items-center justify-center bg-gray-50">
+                {settings.site_icon ? (
+                  <img
+                    src={settings.site_icon}
+                    alt="站点图标"
+                    className="max-w-full max-h-full object-contain p-2"
+                  />
+                ) : (
+                  <span className="text-sm text-[#646970]">暂无图标</span>
+                )}
               </div>
+
+              {/* 按钮组 */}
+              <div className="flex gap-2">
+                <input
+                  ref={siteIconInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleLocalFileUpload(e, 'site_icon')}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => siteIconInputRef.current?.click()}
+                  disabled={uploading}
+                  className="px-3 py-1.5 border border-gray-300 text-sm rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {uploading ? '上传中...' : '本地上传'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleOpenFilePicker('site_icon')}
+                  className="px-3 py-1.5 border border-gray-300 text-sm rounded hover:bg-gray-50"
+                >
+                  从媒体库选择
+                </button>
+              </div>
+
               <p className="text-xs text-[#646970]">
                 网站图标是您在浏览器签页、书签栏中看到的图标。
                 它应为正方形，像素至少为 512 × 512。
@@ -299,17 +414,10 @@ function AdminSettingsPage() {
           {/* Author Avatar */}
           <div className="grid grid-cols-[200px_1fr] items-start gap-4">
             <label htmlFor="author_avatar" className="text-sm font-medium text-[#23282d] pt-2">
-              头像 URL
+              头像
             </label>
-            <div className="flex flex-col gap-2">
-              <input
-                type="text"
-                id="author_avatar"
-                value={settings.author_avatar}
-                onChange={(e) => handleChange('author_avatar', e.target.value)}
-                placeholder="/avatar.png"
-                className="px-3 py-2 border border-gray-300 rounded text-sm max-w-md text-[#23282d]"
-              />
+            <div className="flex flex-col gap-3">
+              {/* 头像预览 */}
               {settings.author_avatar && (
                 <img
                   src={settings.author_avatar}
@@ -317,6 +425,41 @@ function AdminSettingsPage() {
                   className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
                 />
               )}
+
+              {/* URL 输入框和上传按钮 */}
+              <div className="flex gap-2 items-center max-w-md">
+                <input
+                  type="text"
+                  id="author_avatar"
+                  value={settings.author_avatar}
+                  onChange={(e) => handleChange('author_avatar', e.target.value)}
+                  placeholder="/avatar.png"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded text-sm text-[#23282d]"
+                />
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleLocalFileUpload(e, 'author_avatar')}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => avatarInputRef.current?.click()}
+                  disabled={uploading}
+                  className="px-3 py-2 border border-gray-300 text-sm rounded hover:bg-gray-50 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {uploading ? '上传中...' : '本地上传'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleOpenFilePicker('author_avatar')}
+                  className="px-3 py-2 border border-gray-300 text-sm rounded hover:bg-gray-50 whitespace-nowrap"
+                >
+                  从媒体库选择
+                </button>
+              </div>
+
               <span className="text-xs text-[#646970]">建议尺寸：200x200 像素</span>
             </div>
           </div>
@@ -448,6 +591,17 @@ function AdminSettingsPage() {
         </div>
       </form>
     </div>
+
+    {/* File Picker Modal */}
+    <FilePickerModal
+      isOpen={showFilePicker}
+      onClose={() => {
+        setShowFilePicker(false)
+        setFilePickerTarget(null)
+      }}
+      onSelect={handleSelectFromR2}
+      fileType="image"
+    />
     </>
   )
 }

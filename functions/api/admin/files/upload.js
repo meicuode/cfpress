@@ -22,9 +22,18 @@ function generateR2Key(filename, path) {
   const ext = filename.split('.').pop();
   const nameWithoutExt = filename.substring(0, filename.lastIndexOf('.')) || filename;
 
-  // 格式: path/filename_timestamp_random.ext
+  // 清理文件名：移除或替换特殊字符
+  // 允许：字母、数字、中文、连字符、下划线
+  // 替换其他字符为下划线
+  const cleanName = nameWithoutExt
+    .replace(/[\s\(\)（）\[\]【】\{\}｛｝<>《》]/g, '_') // 替换空格和各种括号为下划线
+    .replace(/[^\w\u4e00-\u9fa5\-_]/g, '') // 移除其他特殊字符，保留字母数字中文连字符下划线
+    .replace(/_+/g, '_') // 多个连续下划线替换为单个
+    .replace(/^_|_$/g, ''); // 移除首尾下划线
+
+  // 格式: path/cleanname_timestamp_random.ext
   const cleanPath = path === '/' ? '' : path.replace(/^\/|\/$/g, '');
-  const key = cleanPath ? `${cleanPath}/${nameWithoutExt}_${timestamp}_${random}.${ext}` : `${nameWithoutExt}_${timestamp}_${random}.${ext}`;
+  const key = cleanPath ? `${cleanPath}/${cleanName}_${timestamp}_${random}.${ext}` : `${cleanName}_${timestamp}_${random}.${ext}`;
 
   return key;
 }
