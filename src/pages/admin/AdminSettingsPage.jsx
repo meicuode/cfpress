@@ -7,6 +7,14 @@ function AdminSettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
+  // 默认社交平台配置
+  const defaultSocialPlatforms = [
+    { name: 'GitHub', url: '', icon: 'https://cdn.simpleicons.org/github/white', enabled: false },
+    { name: '微信', url: '', icon: 'https://cdn.simpleicons.org/wechat/09B83E', enabled: false },
+    { name: 'Steam', url: '', icon: 'https://cdn.simpleicons.org/steam/white', enabled: false },
+    { name: 'Email', url: '', icon: 'https://cdn.simpleicons.org/gmail/EA4335', enabled: false }
+  ]
+
   const [settings, setSettings] = useState({
     site_title: 'cfpress',
     site_subtitle: 'cfpress,一个自由的站点',
@@ -14,8 +22,15 @@ function AdminSettingsPage() {
     admin_email: '',
     allow_registration: false,
     default_user_role: 'subscriber',
-    site_language: 'zh_CN'
+    site_language: 'zh_CN',
+    // 博主信息
+    author_avatar: '/avatar.png',
+    author_name: '',
+    author_bio: '',
+    author_social_platforms: JSON.stringify(defaultSocialPlatforms) // JSON 字符串
   })
+
+  const [socialPlatforms, setSocialPlatforms] = useState(defaultSocialPlatforms)
 
   // 加载设置
   useEffect(() => {
@@ -32,6 +47,17 @@ function AdminSettingsPage() {
           ...prev,
           ...data
         }))
+
+        // 解析社交平台 JSON
+        if (data.author_social_platforms) {
+          try {
+            const platforms = JSON.parse(data.author_social_platforms)
+            setSocialPlatforms(platforms)
+          } catch (e) {
+            console.error('解析社交平台配置失败:', e)
+            setSocialPlatforms(defaultSocialPlatforms)
+          }
+        }
       } else {
         toast.error(data.error || '加载设置失败')
       }
@@ -48,10 +74,16 @@ function AdminSettingsPage() {
     setSaving(true)
 
     try {
+      // 将社交平台数组序列化为 JSON 字符串
+      const settingsToSave = {
+        ...settings,
+        author_social_platforms: JSON.stringify(socialPlatforms)
+      }
+
       const response = await fetch('/api/admin/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings)
+        body: JSON.stringify(settingsToSave)
       })
 
       const data = await response.json()
@@ -70,6 +102,26 @@ function AdminSettingsPage() {
 
   const handleChange = (field, value) => {
     setSettings(prev => ({ ...prev, [field]: value }))
+  }
+
+  // 社交平台管理函数
+  const handlePlatformChange = (index, field, value) => {
+    setSocialPlatforms(prev => {
+      const updated = [...prev]
+      updated[index] = { ...updated[index], [field]: value }
+      return updated
+    })
+  }
+
+  const handleAddPlatform = () => {
+    setSocialPlatforms(prev => [
+      ...prev,
+      { name: '', url: '', icon: '', enabled: false }
+    ])
+  }
+
+  const handleRemovePlatform = (index) => {
+    setSocialPlatforms(prev => prev.filter((_, i) => i !== index))
   }
 
   if (loading) {
@@ -233,6 +285,154 @@ function AdminSettingsPage() {
               <option value="zh_TW">繁體中文</option>
               <option value="ja">日本語</option>
             </select>
+          </div>
+
+          {/* 分隔线 */}
+          <div className="col-span-2 border-t border-gray-200 my-6"></div>
+
+          {/* 博主信息标题 */}
+          <div className="col-span-2">
+            <h2 className="text-lg font-medium text-[#23282d] mb-4">博主信息</h2>
+            <p className="text-sm text-[#646970]">配置侧边栏显示的博主个人信息</p>
+          </div>
+
+          {/* Author Avatar */}
+          <div className="grid grid-cols-[200px_1fr] items-start gap-4">
+            <label htmlFor="author_avatar" className="text-sm font-medium text-[#23282d] pt-2">
+              头像 URL
+            </label>
+            <div className="flex flex-col gap-2">
+              <input
+                type="text"
+                id="author_avatar"
+                value={settings.author_avatar}
+                onChange={(e) => handleChange('author_avatar', e.target.value)}
+                placeholder="/avatar.png"
+                className="px-3 py-2 border border-gray-300 rounded text-sm max-w-md text-[#23282d]"
+              />
+              {settings.author_avatar && (
+                <img
+                  src={settings.author_avatar}
+                  alt="头像预览"
+                  className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
+                />
+              )}
+              <span className="text-xs text-[#646970]">建议尺寸：200x200 像素</span>
+            </div>
+          </div>
+
+          {/* Author Name */}
+          <div className="grid grid-cols-[200px_1fr] items-center gap-4">
+            <label htmlFor="author_name" className="text-sm font-medium text-[#23282d]">
+              昵称
+            </label>
+            <input
+              type="text"
+              id="author_name"
+              value={settings.author_name}
+              onChange={(e) => handleChange('author_name', e.target.value)}
+              placeholder="输入昵称"
+              className="px-3 py-2 border border-gray-300 rounded text-sm max-w-md text-[#23282d]"
+            />
+          </div>
+
+          {/* Author Bio */}
+          <div className="grid grid-cols-[200px_1fr] items-start gap-4">
+            <label htmlFor="author_bio" className="text-sm font-medium text-[#23282d] pt-2">
+              个人简介
+            </label>
+            <textarea
+              id="author_bio"
+              value={settings.author_bio}
+              onChange={(e) => handleChange('author_bio', e.target.value)}
+              placeholder="输入个人简介"
+              rows="3"
+              className="px-3 py-2 border border-gray-300 rounded text-sm max-w-md text-[#23282d] resize-none"
+            />
+          </div>
+
+          {/* Social Platforms */}
+          <div className="col-span-2">
+            <h3 className="text-base font-medium text-[#23282d] mb-3 mt-4">社交平台</h3>
+            <p className="text-xs text-[#646970] mb-3">配置显示在侧边栏的社交平台链接</p>
+          </div>
+
+          {/* Platform List */}
+          <div className="col-span-2">
+            <div className="space-y-3">
+              {socialPlatforms.map((platform, index) => (
+                <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded border border-gray-200">
+                  {/* 启用复选框 */}
+                  <input
+                    type="checkbox"
+                    checked={platform.enabled}
+                    onChange={(e) => handlePlatformChange(index, 'enabled', e.target.checked)}
+                    className="rounded"
+                    title="启用/禁用"
+                  />
+
+                  {/* 图标预览 */}
+                  <div className="w-8 h-8 flex items-center justify-center bg-white rounded border border-gray-300">
+                    {platform.icon && (
+                      <img
+                        src={platform.icon}
+                        alt={platform.name}
+                        className="w-5 h-5 object-contain"
+                        onError={(e) => {
+                          e.target.style.display = 'none'
+                        }}
+                      />
+                    )}
+                  </div>
+
+                  {/* 平台名称 */}
+                  <input
+                    type="text"
+                    value={platform.name}
+                    onChange={(e) => handlePlatformChange(index, 'name', e.target.value)}
+                    placeholder="平台名称"
+                    className="w-32 px-3 py-2 border border-gray-300 rounded text-sm text-[#23282d]"
+                  />
+
+                  {/* URL */}
+                  <input
+                    type="text"
+                    value={platform.url}
+                    onChange={(e) => handlePlatformChange(index, 'url', e.target.value)}
+                    placeholder="URL 链接"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded text-sm text-[#23282d]"
+                  />
+
+                  {/* Icon URL */}
+                  <input
+                    type="text"
+                    value={platform.icon}
+                    onChange={(e) => handlePlatformChange(index, 'icon', e.target.value)}
+                    placeholder="图标 URL"
+                    className="w-48 px-3 py-2 border border-gray-300 rounded text-sm text-[#23282d]"
+                  />
+
+                  {/* 删除按钮 */}
+                  <button
+                    type="button"
+                    onClick={() => handleRemovePlatform(index)}
+                    className="px-3 py-2 text-red-600 hover:bg-red-50 rounded text-sm"
+                    title="删除"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+
+              {/* 添加平台按钮 */}
+              <button
+                type="button"
+                onClick={handleAddPlatform}
+                className="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded text-sm text-[#646970] hover:border-[#0073aa] hover:text-[#0073aa] transition-colors"
+              >
+                + 添加新平台
+              </button>
+            </div>
           </div>
         </div>
 

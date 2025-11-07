@@ -73,7 +73,12 @@ export async function onRequestPost(context) {
       head_scripts: 'string',
       footer_scripts: 'string',
       custom_css: 'string',
-      custom_js: 'string'
+      custom_js: 'string',
+      // 作者信息
+      author_avatar: 'string',
+      author_name: 'string',
+      author_bio: 'string',
+      author_social_platforms: 'string'
     };
 
     // 更新每个设置
