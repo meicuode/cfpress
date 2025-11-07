@@ -1,11 +1,33 @@
+import { useState, useEffect } from 'react'
 import { Helmet } from 'react-helmet-async'
 
 function AdminDashboardPage() {
-  const stats = {
-    totalPosts: 17,
-    totalComments: 1,
-    totalViews: 1250,
-    totalTags: 25
+  const [stats, setStats] = useState({
+    totalPosts: 0,
+    totalComments: 0,
+    totalTags: 0,
+    recentPosts: [],
+    recentComments: []
+  })
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadStats()
+  }, [])
+
+  const loadStats = async () => {
+    try {
+      const response = await fetch('/api/admin/dashboard-stats')
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        setStats(data.stats)
+      }
+    } catch (error) {
+      console.error('加载统计数据失败:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -16,7 +38,11 @@ function AdminDashboardPage() {
       <div>
       <h1 className="text-2xl font-normal text-[#23282d] mb-6">仪表盘</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {loading ? (
+        <div className="text-center py-8 text-[#646970]">加载中...</div>
+      ) : (
+        <>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Stats cards */}
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between">
@@ -35,16 +61,6 @@ function AdminDashboardPage() {
               <p className="text-3xl font-semibold text-[#23282d]">{stats.totalComments}</p>
             </div>
             <div className="text-4xl text-[#0073aa]">💬</div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-[#646970] mb-1">访问总数</p>
-              <p className="text-3xl font-semibold text-[#23282d]">{stats.totalViews}</p>
-            </div>
-            <div className="text-4xl text-[#0073aa]">👁️</div>
           </div>
         </div>
 
@@ -97,6 +113,8 @@ function AdminDashboardPage() {
           </a>
         </div>
       </div>
+        </>
+      )}
     </div>
     </>
   )
