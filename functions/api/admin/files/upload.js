@@ -43,9 +43,12 @@ export async function onRequestPost(context) {
     const formData = await request.formData();
 
     const files = formData.getAll('files'); // 支持多文件
-    const path = formData.get('path') || '/'; // 文件夹路径
+    const rawPath = formData.get('path'); // 原始路径
+    const path = rawPath || '/'; // 文件夹路径
     const expiresIn = formData.get('expiresIn'); // 过期时间（秒）
     const uploadUser = formData.get('uploadUser') || 'admin';
+
+    console.log(`📁 上传请求 - 原始path参数: "${rawPath}", 处理后path: "${path}"`);
 
     if (!files || files.length === 0) {
       return new Response(JSON.stringify({ error: '未选择文件' }), {
@@ -65,6 +68,31 @@ export async function onRequestPost(context) {
     const uploadedFiles = [];
     const errors = [];
 
+    // 确保目标路径在 folders 表中存在
+    if (path && path !== '/') {
+      try {
+        const { results: existingFolder } = await env.DB.prepare(
+          'SELECT id FROM folders WHERE path = ?'
+        ).bind(path).all();
+
+        if (existingFolder.length === 0) {
+          // 自动创建文件夹
+          const folderName = path.split('/').filter(Boolean).pop() || 'folder';
+          const parentPath = path.substring(0, path.lastIndexOf('/')) || '/';
+
+          await env.DB.prepare(`
+            INSERT INTO folders (name, path, parent_path)
+            VALUES (?, ?, ?)
+          `).bind(folderName, path, parentPath).run();
+
+          console.log(`✅ 自动创建文件夹: ${path}`);
+        }
+      } catch (error) {
+        console.error('创建文件夹失败:', error);
+        // 继续上传，不阻塞
+      }
+    }
+
     // 处理每个文件
     for (const file of files) {
       if (!file || !file.name) {
@@ -81,8 +109,11 @@ export async function onRequestPost(context) {
         // 生成 R2 key
         const r2Key = generateR2Key(filename, path);
 
+        // 将文件转换为 ArrayBuffer 以确保完整上传
+        const fileBuffer = await file.arrayBuffer();
+
         // 上传到 R2
-        await env.FILES.put(r2Key, file.stream(), {
+        await env.FILES.put(r2Key, fileBuffer, {
           httpMetadata: {
             contentType: mimeType,
           },
@@ -98,6 +129,8 @@ export async function onRequestPost(context) {
         const isVideo = VIDEO_TYPES.includes(mimeType) ? 1 : 0;
 
         // 保存元数据到数据库
+        console.log(`准备保存文件元数据到数据库: ${filename}, size: ${size}, r2Key: ${r2Key}`);
+
         const result = await env.DB.prepare(`
           INSERT INTO files (
             filename, path, r2_key, size, mime_type, extension,
@@ -107,6 +140,9 @@ export async function onRequestPost(context) {
           filename, path, r2Key, size, mimeType, extension,
           isImage, isVideo, uploadUser, expiresAt
         ).run();
+
+        console.log(`数据库插入结果:`, result);
+        console.log(`插入的文件ID: ${result.meta.last_row_id}`);
 
         uploadedFiles.push({
           id: result.meta.last_row_id,

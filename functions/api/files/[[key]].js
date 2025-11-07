@@ -11,9 +11,15 @@
 export async function onRequestGet(context) {
   const { request, env, params } = context;
   const url = new URL(request.url);
-  const key = params.key;
+
+  // 从 URL 路径中提取完整的 key（支持多级路径如 /api/files/cfpress/abc.png）
+  // URL pathname 格式：/api/files/xxx 或 /api/files/cfpress/xxx
+  const pathParts = url.pathname.split('/api/files/')[1];
+  const key = pathParts || params.key;
 
   try {
+    console.log(`获取文件: key=${key}`);
+
     // 查询文件元数据
     const fileInfo = await env.DB.prepare(`
       SELECT *
@@ -22,10 +28,29 @@ export async function onRequestGet(context) {
       LIMIT 1
     `).bind(key).first();
 
+    console.log(`数据库查询结果:`, fileInfo);
+
+    // 如果数据库中没有记录，尝试直接从 R2 获取
     if (!fileInfo) {
-      return new Response(JSON.stringify({ error: '文件不存在' }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json' }
+      console.log(`数据库中找不到文件记录，尝试直接从 R2 获取: ${key}`);
+
+      const object = await env.FILES.get(key);
+      if (!object) {
+        return new Response(JSON.stringify({ error: '文件不存在' }), {
+          status: 404,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      // 直接返回 R2 中的文件，使用 R2 对象的元数据
+      const headers = new Headers();
+      headers.set('Content-Type', object.httpMetadata?.contentType || 'application/octet-stream');
+      headers.set('Content-Length', object.size.toString());
+      headers.set('Cache-Control', 'public, max-age=31536000');
+
+      return new Response(object.body, {
+        status: 200,
+        headers
       });
     }
 
@@ -57,13 +82,22 @@ export async function onRequestGet(context) {
     }
 
     // 从 R2 获取文件
+    console.log(`从 R2 获取文件: ${key}`);
     const object = await env.FILES.get(key);
 
     if (!object) {
+      console.log(`文件不存在于 R2: ${key}`);
       return new Response(JSON.stringify({ error: '文件不存在于存储中' }), {
         status: 404,
         headers: { 'Content-Type': 'application/json' }
       });
+    }
+
+    console.log(`R2 对象获取成功, size: ${object.size}, httpMetadata:`, object.httpMetadata);
+    console.log(`数据库记录 size: ${fileInfo.size}, R2实际 size: ${object.size}`);
+
+    if (object.size !== fileInfo.size) {
+      console.warn(`⚠️ 文件大小不匹配！数据库: ${fileInfo.size}, R2: ${object.size}`);
     }
 
     // 检查是否为下载模式
@@ -74,6 +108,8 @@ export async function onRequestGet(context) {
     headers.set('Content-Type', fileInfo.mime_type);
     headers.set('Content-Length', fileInfo.size.toString());
     headers.set('Cache-Control', 'public, max-age=31536000'); // 缓存 1 年
+
+    console.log(`响应头: Content-Type=${fileInfo.mime_type}, Content-Length=${fileInfo.size}`);
 
     if (isDownload) {
       headers.set('Content-Disposition', `attachment; filename="${encodeURIComponent(fileInfo.filename)}"`);

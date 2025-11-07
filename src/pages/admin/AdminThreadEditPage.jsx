@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import ReactQuill from 'react-quill'
@@ -10,6 +10,7 @@ function AdminThreadEditPage() {
   const navigate = useNavigate()
   const toast = useToast()
   const quillRef = useRef(null)
+  const fileInputRef = useRef(null) // 添加 file input ref
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [content, setContent] = useState('')
@@ -26,22 +27,89 @@ function AdminThreadEditPage() {
   const [categories, setCategories] = useState([])
   const [tagInput, setTagInput] = useState('')
 
-  // Quill 工具栏配置 - 包含字体大小
-  const modules = {
-    toolbar: [
-      [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
-      [{ 'size': ['small', false, 'large', 'huge'] }],  // 字体大小
-      [{ 'font': [] }],  // 字体系列
-      ['bold', 'italic', 'underline', 'strike'],
-      [{ 'color': [] }, { 'background': [] }],
-      [{ 'script': 'sub'}, { 'script': 'super' }],
-      ['blockquote', 'code-block'],
-      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-      [{ 'indent': '-1'}, { 'indent': '+1' }],
-      [{ 'align': [] }],
-      ['link', 'image', 'video'],
-      ['clean']
-    ]
+  // Quill 工具栏配置 - 包含字体大小和自定义图片处理器
+  const modules = useMemo(() => ({
+    toolbar: {
+      container: [
+        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+        [{ 'size': ['small', false, 'large', 'huge'] }],  // 字体大小
+        [{ 'font': [] }],  // 字体系列
+        ['bold', 'italic', 'underline', 'strike'],
+        [{ 'color': [] }, { 'background': [] }],
+        [{ 'script': 'sub'}, { 'script': 'super' }],
+        ['blockquote', 'code-block'],
+        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+        [{ 'indent': '-1'}, { 'indent': '+1' }],
+        [{ 'align': [] }],
+        ['link', 'image', 'video'],
+        ['clean']
+      ],
+      handlers: {
+        image: function() {
+          // 使用 ref 中的 input 元素，而不是每次创建新的
+          fileInputRef.current?.click()
+        }
+      }
+    }
+  }), []) // 空依赖数组，只创建一次
+
+  // 处理文件上传
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const quill = quillRef.current?.getEditor()
+    if (!quill) {
+      console.error('Quill 编辑器未找到')
+      return
+    }
+
+    // 保存当前光标位置
+    const range = quill.getSelection(true)
+    const cursorPosition = range ? range.index : 0
+
+    try {
+      // 创建 FormData
+      const formData = new FormData()
+      formData.append('files', file)
+      formData.append('path', '/cfpress')
+      formData.append('uploadUser', 'admin')
+
+      console.log('开始上传图片到 /cfpress 目录...')
+      toast.info('图片上传中...')
+
+      // 上传到服务器
+      const response = await fetch('/api/admin/files/upload', {
+        method: 'POST',
+        body: formData
+      })
+
+      const data = await response.json()
+      console.log('上传响应:', data)
+
+      if (response.ok && data.uploaded && data.uploaded.length > 0) {
+        const imageUrl = data.uploaded[0].url
+        console.log('插入图片 URL:', imageUrl)
+
+        // 使用 Quill Delta API 插入图片
+        const Delta = quill.constructor.import('delta')
+        const delta = new Delta()
+          .retain(cursorPosition)
+          .insert({ image: imageUrl })
+
+        quill.updateContents(delta, 'user')
+
+        toast.success('图片上传成功')
+      } else {
+        throw new Error(data.error || '上传失败')
+      }
+    } catch (error) {
+      console.error('图片上传失败:', error)
+      toast.error('图片上传失败: ' + error.message)
+    }
+
+    // 清空 input，允许上传相同文件
+    e.target.value = ''
   }
 
   const formats = [
@@ -292,6 +360,14 @@ function AdminThreadEditPage() {
 
             {/* Quill 编辑器 */}
             <div className="mb-6">
+              {/* 隐藏的文件input用于图片上传 */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                style={{ display: 'none' }}
+              />
               <ReactQuill
                 ref={quillRef}
                 theme="snow"
