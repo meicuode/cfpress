@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import ReactQuill, { Quill } from 'react-quill'
@@ -61,7 +61,32 @@ function AdminThreadEditPage() {
     }
   }), []) // 空依赖数组，只创建一次
 
-  // 处理文件上传
+  // 处理文件上传（通用函数）
+  const uploadImageToR2 = useCallback(async (file) => {
+    const formData = new FormData()
+    formData.append('files', file)
+    formData.append('path', '/cfpress')
+    formData.append('uploadUser', 'admin')
+
+    console.log('开始上传图片到 /cfpress 目录...')
+    toast.info('图片上传中...')
+
+    const response = await fetch('/api/admin/files/upload', {
+      method: 'POST',
+      body: formData
+    })
+
+    const data = await response.json()
+    console.log('上传响应:', data)
+
+    if (response.ok && data.uploaded && data.uploaded.length > 0) {
+      return data.uploaded[0].url
+    } else {
+      throw new Error(data.error || '上传失败')
+    }
+  }, [toast])
+
+  // 处理文件上传（从文件选择器）
   const handleImageUpload = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -77,40 +102,18 @@ function AdminThreadEditPage() {
     const cursorPosition = range ? range.index : 0
 
     try {
-      // 创建 FormData
-      const formData = new FormData()
-      formData.append('files', file)
-      formData.append('path', '/cfpress')
-      formData.append('uploadUser', 'admin')
+      const imageUrl = await uploadImageToR2(file)
+      console.log('插入图片 URL:', imageUrl)
 
-      console.log('开始上传图片到 /cfpress 目录...')
-      toast.info('图片上传中...')
+      // 使用 Quill Delta API 插入图片
+      const Delta = quill.constructor.import('delta')
+      const delta = new Delta()
+        .retain(cursorPosition)
+        .insert({ image: imageUrl })
 
-      // 上传到服务器
-      const response = await fetch('/api/admin/files/upload', {
-        method: 'POST',
-        body: formData
-      })
+      quill.updateContents(delta, 'user')
 
-      const data = await response.json()
-      console.log('上传响应:', data)
-
-      if (response.ok && data.uploaded && data.uploaded.length > 0) {
-        const imageUrl = data.uploaded[0].url
-        console.log('插入图片 URL:', imageUrl)
-
-        // 使用 Quill Delta API 插入图片
-        const Delta = quill.constructor.import('delta')
-        const delta = new Delta()
-          .retain(cursorPosition)
-          .insert({ image: imageUrl })
-
-        quill.updateContents(delta, 'user')
-
-        toast.success('图片上传成功')
-      } else {
-        throw new Error(data.error || '上传失败')
-      }
+      toast.success('图片上传成功')
     } catch (error) {
       console.error('图片上传失败:', error)
       toast.error('图片上传失败: ' + error.message)
@@ -119,6 +122,59 @@ function AdminThreadEditPage() {
     // 清空 input，允许上传相同文件
     e.target.value = ''
   }
+
+  // 处理粘贴图片
+  useEffect(() => {
+    const quill = quillRef.current?.getEditor()
+    if (!quill) return
+
+    const handlePaste = async (e) => {
+      const clipboardData = e.clipboardData || window.clipboardData
+      const items = clipboardData?.items
+
+      if (!items) return
+
+      // 查找粘贴的图片
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          e.preventDefault() // 阻止默认粘贴行为
+          e.stopPropagation() // 阻止事件冒泡
+
+          const file = items[i].getAsFile()
+          if (!file) continue
+
+          const range = quill.getSelection(true)
+          const cursorPosition = range ? range.index : 0
+
+          try {
+            const imageUrl = await uploadImageToR2(file)
+            console.log('粘贴图片已上传，URL:', imageUrl)
+
+            // 插入图片
+            quill.insertEmbed(cursorPosition, 'image', imageUrl, 'user')
+            quill.setSelection(cursorPosition + 1)
+
+            toast.success('粘贴图片上传成功')
+          } catch (error) {
+            console.error('粘贴图片上传失败:', error)
+            toast.error('粘贴图片上传失败: ' + error.message)
+          }
+
+          break
+        }
+      }
+    }
+
+    const editorElement = quill.root
+    editorElement.addEventListener('paste', handlePaste, true)
+
+    console.log('✅ 粘贴图片处理器已注册')
+
+    return () => {
+      editorElement.removeEventListener('paste', handlePaste, true)
+      console.log('❌ 粘贴图片处理器已移除')
+    }
+  }, [uploadImageToR2, toast])
 
   const formats = [
     'header', 'size', 'font',
