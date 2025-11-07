@@ -16,6 +16,7 @@ function ThreadPage() {
   const [error, setError] = useState(null)
   const [replyTo, setReplyTo] = useState(null) // 回复的评论 ID
   const [lightboxImage, setLightboxImage] = useState(null) // 图片预览
+  const [showOriginalSize, setShowOriginalSize] = useState(false) // 是否显示原图尺寸
 
   // 格式化日期
   const formatDate = (dateString) => {
@@ -208,11 +209,17 @@ function ThreadPage() {
     }
   }, [thread])
 
+  // 关闭图片预览
+  const closeLightbox = () => {
+    setLightboxImage(null)
+    setShowOriginalSize(false)
+  }
+
   // 处理ESC键关闭图片预览
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === 'Escape' && lightboxImage) {
-        setLightboxImage(null)
+        closeLightbox()
       }
     }
 
@@ -462,21 +469,63 @@ function ThreadPage() {
     {/* 图片预览 Lightbox */}
     {lightboxImage && (
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm"
-        onClick={() => setLightboxImage(null)}
+        className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-sm overflow-auto"
+        onClick={closeLightbox}
       >
         <button
           className="absolute top-4 right-4 text-white text-4xl hover:text-gray-300 transition-colors z-10"
-          onClick={() => setLightboxImage(null)}
+          onClick={closeLightbox}
           aria-label="关闭"
         >
           ×
         </button>
+
+        {/* 工具栏 */}
+        <div className="absolute top-4 left-4 flex gap-2 z-10">
+          {/* 切换原图尺寸 */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              setShowOriginalSize(!showOriginalSize)
+            }}
+            className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg backdrop-blur-sm transition-colors text-sm flex items-center gap-2"
+            title={showOriginalSize ? "适应屏幕" : "显示原图"}
+          >
+            {showOriginalSize ? (
+              <>
+                <span>🔍</span>
+                <span>适应屏幕</span>
+              </>
+            ) : (
+              <>
+                <span>🔍</span>
+                <span>查看原图</span>
+              </>
+            )}
+          </button>
+
+          {/* 新标签页打开 */}
+          <a
+            href={lightboxImage}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg backdrop-blur-sm transition-colors text-sm flex items-center gap-2"
+            onClick={(e) => e.stopPropagation()}
+            title="在新标签页打开"
+          >
+            <span>↗</span>
+            <span>新窗口打开</span>
+          </a>
+        </div>
+
         <img
           src={lightboxImage}
           alt="预览"
-          className="max-w-[90vw] max-h-[90vh] object-contain"
-          onClick={(e) => e.stopPropagation()}
+          className={showOriginalSize ? "object-none cursor-zoom-out" : "max-w-[90vw] max-h-[90vh] object-contain cursor-zoom-in"}
+          onClick={(e) => {
+            e.stopPropagation()
+            setShowOriginalSize(!showOriginalSize)
+          }}
         />
       </div>
     )}
