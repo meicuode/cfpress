@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useToast } from '../../contexts/ToastContext'
 import { useConfirm } from '../../contexts/ConfirmContext'
+import FilePickerModal from '../../components/FilePickerModal'
 
 function AdminThreadEditorPage() {
   const { id } = useParams()
@@ -9,12 +10,14 @@ function AdminThreadEditorPage() {
   const toast = useToast()
   const confirm = useConfirm()
   const isEditing = !!id
+  const contentTextareaRef = useRef(null)
 
   // 状态管理
   const [categoriesList, setCategoriesList] = useState([])
   const [popularTags, setPopularTags] = useState([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [showFilePicker, setShowFilePicker] = useState(false)
 
   const [thread, setThread] = useState({
     title: '',
@@ -237,6 +240,36 @@ function AdminThreadEditorPage() {
     }
   }
 
+  const handleInsertImage = (file) => {
+    const textarea = contentTextareaRef.current
+    if (!textarea) return
+
+    // 获取光标位置
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    const selectedText = thread.content.substring(start, end)
+
+    // 生成 Markdown 图片语法
+    const imageMarkdown = `![${selectedText || file.filename}](${file.url})`
+
+    // 插入图片
+    const newContent =
+      thread.content.substring(0, start) +
+      imageMarkdown +
+      thread.content.substring(end)
+
+    setThread({ ...thread, content: newContent })
+
+    // 恢复光标位置（移到插入内容之后）
+    setTimeout(() => {
+      textarea.focus()
+      const newPosition = start + imageMarkdown.length
+      textarea.setSelectionRange(newPosition, newPosition)
+    }, 0)
+
+    toast.success('图片已插入')
+  }
+
   return (
     <div className="flex gap-1 h-[calc(100vh-62px)]">
       {/* 加载中状态 */}
@@ -251,17 +284,18 @@ function AdminThreadEditorPage() {
         {/* Top toolbar */}
         <div className="border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
-            <button className="w-10 h-10 flex items-center justify-center bg-[#0073aa] text-white rounded hover:bg-[#005a87]">
-              ➕
+            <button
+              onClick={() => setShowFilePicker(true)}
+              className="px-3 py-2 flex items-center gap-2 bg-[#0073aa] text-white rounded hover:bg-[#005a87]"
+              title="插入图片"
+            >
+              🖼️ 插入图片
             </button>
             <button className="w-10 h-10 flex items-center justify-center border border-gray-300 rounded hover:bg-gray-50">
               ↶
             </button>
             <button className="w-10 h-10 flex items-center justify-center border border-gray-300 rounded hover:bg-gray-50">
               ↷
-            </button>
-            <button className="w-10 h-10 flex items-center justify-center border border-gray-300 rounded hover:bg-gray-50">
-              ☰
             </button>
           </div>
 
@@ -300,6 +334,7 @@ function AdminThreadEditorPage() {
         {/* Content editor */}
         <div className="px-0.5 pb-2 flex-1 flex flex-col">
           <textarea
+            ref={contentTextareaRef}
             value={thread.content}
             onChange={(e) => setThread({ ...thread, content: e.target.value })}
             placeholder="输入 / 来选择一个区块"
@@ -307,6 +342,14 @@ function AdminThreadEditorPage() {
           />
         </div>
       </div>
+
+      {/* File Picker Modal */}
+      <FilePickerModal
+        isOpen={showFilePicker}
+        onClose={() => setShowFilePicker(false)}
+        onSelect={handleInsertImage}
+        fileType="image"
+      />
 
       {/* Sidebar */}
       <div className="w-[300px] bg-white rounded-lg shadow p-6 h-fit">

@@ -5,9 +5,14 @@ import ReactQuill, { Quill } from 'react-quill'
 import 'react-quill/dist/quill.snow.css'
 import ImageResize from 'quill-image-resize-module-react'
 import { useToast } from '../../contexts/ToastContext'
+import FilePickerModal from '../../components/FilePickerModal'
 
 // 注册图片调整大小模块
 Quill.register('modules/imageResize', ImageResize)
+
+// 自定义工具栏图标 - 使用 SVG 图标
+const icons = Quill.import('ui/icons')
+icons['image-r2'] = '<svg viewbox="0 0 18 18"><rect class="ql-stroke" height="10" width="12" x="3" y="4"></rect><circle class="ql-fill" cx="6" cy="7" r="1"></circle><polyline class="ql-even ql-fill" points="5 12 5 11 7 9 8 10 11 7 13 9 13 12 5 12"></polyline><path class="ql-stroke" d="M14,9.5V4a1,1,0,0,0-1-1H5A1,1,0,0,0,4,4V9.5"></path></svg>'
 
 function AdminThreadEditPage() {
   const { id } = useParams()
@@ -18,6 +23,7 @@ function AdminThreadEditPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [content, setContent] = useState('')
+  const [showFilePicker, setShowFilePicker] = useState(false)
 
   const [formData, setFormData] = useState({
     title: '',
@@ -30,6 +36,30 @@ function AdminThreadEditPage() {
 
   const [categories, setCategories] = useState([])
   const [tagInput, setTagInput] = useState('')
+
+  // 从 R2 选择图片的处理函数
+  const handleR2ImageSelect = useCallback(() => {
+    setShowFilePicker(true)
+  }, [])
+
+  // 插入 R2 图片到编辑器
+  const handleInsertR2Image = useCallback((file) => {
+    const quill = quillRef.current?.getEditor()
+    if (!quill) return
+
+    const range = quill.getSelection(true)
+    const cursorPosition = range ? range.index : 0
+
+    // 使用 Quill Delta API 插入图片
+    const Delta = quill.constructor.import('delta')
+    const delta = new Delta()
+      .retain(cursorPosition)
+      .insert({ image: file.url })
+
+    quill.updateContents(delta, 'user')
+
+    toast.success('图片已插入')
+  }, [toast])
 
   // Quill 工具栏配置 - 包含字体大小和自定义图片处理器
   const modules = useMemo(() => ({
@@ -45,21 +75,22 @@ function AdminThreadEditPage() {
         [{ 'list': 'ordered'}, { 'list': 'bullet' }],
         [{ 'indent': '-1'}, { 'indent': '+1' }],
         [{ 'align': [] }],
-        ['link', 'image', 'video'],
+        ['link', 'image', 'image-r2', 'video'],  // 添加 image-r2 自定义按钮
         ['clean']
       ],
       handlers: {
         image: function() {
-          // 使用 ref 中的 input 元素，而不是每次创建新的
+          // 本地上传图片
           fileInputRef.current?.click()
-        }
+        },
+        'image-r2': handleR2ImageSelect  // R2 图片选择
       }
     },
     imageResize: {
       parchment: Quill.import('parchment'),
       modules: ['Resize', 'DisplaySize', 'Toolbar']
     }
-  }), []) // 空依赖数组，只创建一次
+  }), [handleR2ImageSelect]) // 添加依赖
 
   // 处理文件上传（通用函数）
   const uploadImageToR2 = useCallback(async (file) => {
@@ -569,6 +600,14 @@ function AdminThreadEditPage() {
         </div>
       </div>
     </div>
+
+    {/* File Picker Modal */}
+    <FilePickerModal
+      isOpen={showFilePicker}
+      onClose={() => setShowFilePicker(false)}
+      onSelect={handleInsertR2Image}
+      fileType="image"
+    />
     </>
   )
 }
