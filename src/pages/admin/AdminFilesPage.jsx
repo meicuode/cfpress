@@ -547,7 +547,7 @@ function AdminFilesPage() {
                         </td>
                         <td className="px-4 py-3 text-sm text-[#646970]">-</td>
                         <td className="px-4 py-3 text-sm text-[#646970]">文件夹</td>
-                        <td className="px-4 py-3 text-sm text-[#646970]">{formatDate(folder.created_at)}</td>
+                        <td className="px-4 py-3 text-sm text-[#646970]">{formatDate(folder.createdAt)}</td>
                         <td className="px-4 py-3 text-sm text-[#646970]">-</td>
                       </tr>
                     ))}
