@@ -515,16 +515,27 @@ function AdminSettingsPage() {
                   />
 
                   {/* 图标预览 */}
-                  <div className="w-8 h-8 flex items-center justify-center bg-white rounded border border-gray-300">
-                    {platform.icon && (
-                      <img
-                        src={platform.icon}
-                        alt={platform.name}
-                        className="w-5 h-5 object-contain"
-                        onError={(e) => {
-                          e.target.style.display = 'none'
-                        }}
-                      />
+                  <div className="w-8 h-8 flex items-center justify-center bg-gray-800 rounded border border-gray-300">
+                    {platform.icon ? (
+                      platform.icon.startsWith('http') || platform.icon.startsWith('/') ? (
+                        <img
+                          src={platform.icon}
+                          alt={platform.name}
+                          className="w-5 h-5 object-contain"
+                          onError={(e) => {
+                            // 加载失败时显示占位符
+                            e.target.style.display = 'none'
+                            const placeholder = document.createElement('span')
+                            placeholder.textContent = '❌'
+                            placeholder.className = 'text-xs'
+                            e.target.parentElement.appendChild(placeholder)
+                          }}
+                        />
+                      ) : (
+                        <span className="text-base">{platform.icon}</span>
+                      )
+                    ) : (
+                      <span className="text-xs text-gray-400">无</span>
                     )}
                   </div>
 
