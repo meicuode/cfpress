@@ -43,7 +43,18 @@ function Navbar() {
         <div className="h-[52px] flex items-center justify-between gap-8 pt-2">
           {/* Site branding */}
           <Link to="/" className="flex items-center gap-2 text-base font-medium text-text-primary whitespace-nowrap">
-            <span className="text-xl">{navConfig.siteIcon}</span>
+            {/* 站点图标 - 支持图片URL或emoji */}
+            {navConfig.siteIcon && (
+              navConfig.siteIcon.startsWith('http') || navConfig.siteIcon.startsWith('/') ? (
+                <img
+                  src={navConfig.siteIcon}
+                  alt="站点图标"
+                  className="w-6 h-6 object-contain"
+                />
+              ) : (
+                <span className="text-xl">{navConfig.siteIcon}</span>
+              )
+            )}
             <span className="max-md:hidden">{navConfig.siteName}</span>
           </Link>
 
