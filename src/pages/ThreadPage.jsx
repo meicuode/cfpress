@@ -469,64 +469,74 @@ function ThreadPage() {
     {/* 图片预览 Lightbox */}
     {lightboxImage && (
       <div
-        className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-sm overflow-auto"
+        className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-sm"
         onClick={closeLightbox}
       >
-        <button
-          className="absolute top-4 right-4 text-white text-4xl hover:text-gray-300 transition-colors z-10"
-          onClick={closeLightbox}
-          aria-label="关闭"
-        >
-          ×
-        </button>
+        {/* 固定在视口顶部的按钮栏 - 不随滚动移动 */}
+        <div className="fixed top-0 left-0 right-0 z-[10000] flex justify-between items-center p-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-none">
+          {/* 左侧工具栏 */}
+          <div className="flex gap-2 pointer-events-auto">
+            {/* 切换原图尺寸 */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setShowOriginalSize(!showOriginalSize)
+              }}
+              className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg backdrop-blur-sm transition-colors text-sm flex items-center gap-2"
+              title={showOriginalSize ? "适应屏幕" : "显示原图"}
+            >
+              {showOriginalSize ? (
+                <>
+                  <span>🔍</span>
+                  <span>适应屏幕</span>
+                </>
+              ) : (
+                <>
+                  <span>🔍</span>
+                  <span>查看原图</span>
+                </>
+              )}
+            </button>
 
-        {/* 工具栏 */}
-        <div className="absolute top-4 left-4 flex gap-2 z-10">
-          {/* 切换原图尺寸 */}
+            {/* 新标签页打开 */}
+            <a
+              href={lightboxImage}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg backdrop-blur-sm transition-colors text-sm flex items-center gap-2"
+              onClick={(e) => e.stopPropagation()}
+              title="在新标签页打开"
+            >
+              <span>↗</span>
+              <span>新窗口打开</span>
+            </a>
+          </div>
+
+          {/* 右侧关闭按钮 */}
           <button
-            onClick={(e) => {
-              e.stopPropagation()
-              setShowOriginalSize(!showOriginalSize)
-            }}
-            className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg backdrop-blur-sm transition-colors text-sm flex items-center gap-2"
-            title={showOriginalSize ? "适应屏幕" : "显示原图"}
+            className="text-white text-4xl hover:text-gray-300 transition-colors pointer-events-auto leading-none"
+            onClick={closeLightbox}
+            aria-label="关闭"
           >
-            {showOriginalSize ? (
-              <>
-                <span>🔍</span>
-                <span>适应屏幕</span>
-              </>
-            ) : (
-              <>
-                <span>🔍</span>
-                <span>查看原图</span>
-              </>
-            )}
+            ×
           </button>
-
-          {/* 新标签页打开 */}
-          <a
-            href={lightboxImage}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg backdrop-blur-sm transition-colors text-sm flex items-center gap-2"
-            onClick={(e) => e.stopPropagation()}
-            title="在新标签页打开"
-          >
-            <span>↗</span>
-            <span>新窗口打开</span>
-          </a>
         </div>
 
-        <img
-          src={lightboxImage}
-          alt="预览"
-          className={showOriginalSize ? "object-none cursor-zoom-out" : "max-w-[90vw] max-h-[90vh] object-contain cursor-zoom-in"}
-          onClick={(e) => {
-            e.stopPropagation()
-            setShowOriginalSize(!showOriginalSize)
-          }}
-        />
+        {/* 可滚动的图片容器 */}
+        <div className="w-full h-full overflow-auto">
+          <div className="min-h-full flex items-center justify-center p-4 pt-20 pb-4">
+            <img
+              src={lightboxImage}
+              alt="预览"
+              className={showOriginalSize ? "block" : "max-w-full max-h-[calc(100vh-8rem)] object-contain cursor-zoom-in"}
+              style={showOriginalSize ? {} : {}}
+              onClick={(e) => {
+                e.stopPropagation()
+                setShowOriginalSize(!showOriginalSize)
+              }}
+            />
+          </div>
+        </div>
       </div>
     )}
     </>
