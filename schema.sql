@@ -462,7 +462,15 @@ CREATE TABLE IF NOT EXISTS files (
   extension TEXT,                      -- 文件扩展名
   is_image INTEGER DEFAULT 0,          -- 是否为图片（1=是, 0=否）
   is_video INTEGER DEFAULT 0,          -- 是否为视频（1=是, 0=否）
-  thumbnail_key TEXT,                  -- 缩略图的 R2 键（可选）
+
+  -- 图片优化字段
+  width INTEGER,                       -- 图片宽度（像素）
+  height INTEGER,                      -- 图片高度（像素）
+  thumbnail_r2_key TEXT,               -- 小缩略图的 R2 键（300x300，WebP）
+  medium_r2_key TEXT,                  -- 中等尺寸的 R2 键（800x800，WebP）
+  has_thumbnails INTEGER DEFAULT 0,    -- 是否已生成缩略图（1=是, 0=否）
+
+  thumbnail_key TEXT,                  -- [已废弃] 旧的缩略图字段，保留兼容性
   upload_user TEXT,                    -- 上传用户（可选）
   expires_at DATETIME,                 -- 过期时间（NULL 表示永不过期）
   is_expired INTEGER DEFAULT 0,        -- 是否已过期（1=是, 0=否）
@@ -493,6 +501,8 @@ CREATE INDEX IF NOT EXISTS idx_files_r2_key ON files(r2_key);
 CREATE INDEX IF NOT EXISTS idx_files_expires_at ON files(expires_at);
 CREATE INDEX IF NOT EXISTS idx_files_is_expired ON files(is_expired);
 CREATE INDEX IF NOT EXISTS idx_files_purged ON files(purged);
+CREATE INDEX IF NOT EXISTS idx_files_is_image ON files(is_image);
+CREATE INDEX IF NOT EXISTS idx_files_has_thumbnails ON files(has_thumbnails);
 
 -- 文件夹索引
 CREATE INDEX IF NOT EXISTS idx_folders_path ON folders(path);

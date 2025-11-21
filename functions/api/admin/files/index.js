@@ -61,7 +61,8 @@ export async function onRequestGet(context) {
       SELECT
         id, filename, path, r2_key, size, mime_type, extension,
         is_image, is_video, thumbnail_key, upload_user,
-        expires_at, is_expired, created_at, updated_at
+        expires_at, is_expired, created_at, updated_at,
+        width, height, thumbnail_r2_key, medium_r2_key, has_thumbnails
       FROM files
       WHERE ${whereClause}
       ORDER BY ${safeSortBy} ${safeSortOrder}
@@ -104,7 +105,14 @@ export async function onRequestGet(context) {
       extension: file.extension,
       isImage: Boolean(file.is_image),
       isVideo: Boolean(file.is_video),
-      thumbnailUrl: file.thumbnail_key ? `/api/files/${file.thumbnail_key}` : null,
+      // 优先使用新的缩略图字段，兼容旧的 thumbnail_key
+      thumbnailUrl: file.thumbnail_r2_key
+        ? `/api/files/${file.thumbnail_r2_key}`
+        : (file.thumbnail_key ? `/api/files/${file.thumbnail_key}` : null),
+      mediumUrl: file.medium_r2_key ? `/api/files/${file.medium_r2_key}` : null,
+      width: file.width,
+      height: file.height,
+      hasThumbnails: Boolean(file.has_thumbnails),
       uploadUser: file.upload_user,
       expiresAt: file.expires_at,
       isExpired: Boolean(file.is_expired),

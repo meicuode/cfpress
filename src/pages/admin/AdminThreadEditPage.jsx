@@ -34,6 +34,11 @@ function AdminThreadEditPage() {
     tag_names: []
   })
 
+  // 确保 categories 总是数组
+  const safeCategories = Array.isArray(categories) ? categories : []
+  const safeCategoryIds = Array.isArray(formData.category_ids) ? formData.category_ids : []
+  const safeTagNames = Array.isArray(formData.tag_names) ? formData.tag_names : []
+
   const [categories, setCategories] = useState([])
   const [tagInput, setTagInput] = useState('')
 
@@ -382,30 +387,37 @@ function AdminThreadEditPage() {
   }
 
   const handleCategoryToggle = (categoryId) => {
-    setFormData(prev => ({
-      ...prev,
-      category_ids: prev.category_ids.includes(categoryId)
-        ? prev.category_ids.filter(id => id !== categoryId)
-        : [...prev.category_ids, categoryId]
-    }))
+    setFormData(prev => {
+      const currentIds = Array.isArray(prev.category_ids) ? prev.category_ids : []
+      return {
+        ...prev,
+        category_ids: currentIds.includes(categoryId)
+          ? currentIds.filter(id => id !== categoryId)
+          : [...currentIds, categoryId]
+      }
+    })
   }
 
   const handleAddTag = () => {
     const tag = tagInput.trim()
-    if (tag && !formData.tag_names.includes(tag)) {
+    const currentTags = Array.isArray(formData.tag_names) ? formData.tag_names : []
+    if (tag && !currentTags.includes(tag)) {
       setFormData(prev => ({
         ...prev,
-        tag_names: [...prev.tag_names, tag]
+        tag_names: [...currentTags, tag]
       }))
       setTagInput('')
     }
   }
 
   const handleRemoveTag = (tag) => {
-    setFormData(prev => ({
-      ...prev,
-      tag_names: prev.tag_names.filter(t => t !== tag)
-    }))
+    setFormData(prev => {
+      const currentTags = Array.isArray(prev.tag_names) ? prev.tag_names : []
+      return {
+        ...prev,
+        tag_names: currentTags.filter(t => t !== tag)
+      }
+    })
   }
 
   if (loading) {
@@ -546,11 +558,11 @@ function AdminThreadEditPage() {
           <div className="bg-white rounded-lg shadow p-4">
             <h3 className="font-medium text-[#23282d] mb-3">分类目录</h3>
             <div className="space-y-2 max-h-48 overflow-y-auto">
-              {categories.map(category => (
+              {safeCategories.map(category => (
                 <label key={category.id} className="flex items-center gap-2">
                   <input
                     type="checkbox"
-                    checked={formData.category_ids.includes(category.id)}
+                    checked={safeCategoryIds.includes(category.id)}
                     onChange={() => handleCategoryToggle(category.id)}
                     className="rounded"
                   />
@@ -582,7 +594,7 @@ function AdminThreadEditPage() {
             </div>
 
             <div className="flex flex-wrap gap-2">
-              {formData.tag_names.map(tag => (
+              {safeTagNames.map(tag => (
                 <span
                   key={tag}
                   className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-xs rounded text-[#23282d]"

@@ -202,6 +202,11 @@ export async function onRequestGet(context) {
   extension TEXT,
   is_image INTEGER DEFAULT 0,
   is_video INTEGER DEFAULT 0,
+  width INTEGER,
+  height INTEGER,
+  thumbnail_r2_key TEXT,
+  medium_r2_key TEXT,
+  has_thumbnails INTEGER DEFAULT 0,
   thumbnail_key TEXT,
   upload_user TEXT,
   expires_at DATETIME,
@@ -272,6 +277,8 @@ export async function onRequestGet(context) {
     sqlStatements.push(`CREATE INDEX IF NOT EXISTS idx_files_expires_at ON files(expires_at)`);
     sqlStatements.push(`CREATE INDEX IF NOT EXISTS idx_files_is_expired ON files(is_expired)`);
     sqlStatements.push(`CREATE INDEX IF NOT EXISTS idx_files_purged ON files(purged)`);
+    sqlStatements.push(`CREATE INDEX IF NOT EXISTS idx_files_is_image ON files(is_image)`);
+    sqlStatements.push(`CREATE INDEX IF NOT EXISTS idx_files_has_thumbnails ON files(has_thumbnails)`);
 
     // folders 索引
     sqlStatements.push(`CREATE INDEX IF NOT EXISTS idx_folders_path ON folders(path)`);

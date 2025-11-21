@@ -7,7 +7,14 @@
  * - 文件夹路径
  * - 过期时间设置
  * - 自动识别图片/视频
+ * - 图片自动生成缩略图
  */
+
+import {
+  getImageDimensions,
+  generateThumbnail,
+  THUMBNAIL_SIZES
+} from '../../../utils/image-processor.js';
 
 // 支持的图片类型
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
@@ -36,6 +43,30 @@ function generateR2Key(filename, path) {
   const key = cleanPath ? `${cleanPath}/${cleanName}_${timestamp}_${random}.${ext}` : `${cleanName}_${timestamp}_${random}.${ext}`;
 
   return key;
+}
+
+// 确保缩略图文件夹存在
+async function ensureThumbnailFolders(env) {
+  const folders = [
+    { name: 'thumbnails', path: '/thumbnails', parent_path: '/' },
+    { name: 'thumb', path: '/thumbnails/thumb', parent_path: '/thumbnails' },
+    { name: 'medium', path: '/thumbnails/medium', parent_path: '/thumbnails' }
+  ];
+
+  for (const folder of folders) {
+    // 检查文件夹是否存在
+    const existing = await env.DB.prepare(
+      'SELECT id FROM folders WHERE path = ?'
+    ).bind(folder.path).first();
+
+    if (!existing) {
+      await env.DB.prepare(`
+        INSERT INTO folders (name, path, parent_path)
+        VALUES (?, ?, ?)
+      `).bind(folder.name, folder.path, folder.parent_path).run();
+      console.log(`创建文件夹: ${folder.path}`);
+    }
+  }
 }
 
 // 获取文件扩展名
@@ -137,17 +168,123 @@ export async function onRequestPost(context) {
         const isImage = IMAGE_TYPES.includes(mimeType) ? 1 : 0;
         const isVideo = VIDEO_TYPES.includes(mimeType) ? 1 : 0;
 
+        // 图片处理：获取尺寸和生成缩略图
+        let width = null;
+        let height = null;
+        let thumbnailR2Key = null;
+        let mediumR2Key = null;
+        let hasThumbnails = 0;
+
+        if (isImage && mimeType !== 'image/svg+xml') {
+          try {
+            // 获取图片尺寸
+            const dimensions = await getImageDimensions(fileBuffer, mimeType);
+            width = dimensions.width;
+            height = dimensions.height;
+
+            console.log(`图片尺寸: ${width}x${height}`);
+
+            // 生成缩略图 (300x300)
+            const thumbnail = await generateThumbnail(
+              fileBuffer,
+              mimeType,
+              THUMBNAIL_SIZES.thumbnail.maxWidth,
+              THUMBNAIL_SIZES.thumbnail.maxHeight,
+              THUMBNAIL_SIZES.thumbnail.quality
+            );
+
+            if (thumbnail) {
+              // 如果尺寸读取失败，使用 Photon 返回的原始尺寸
+              if (width === 0 || height === 0) {
+                width = thumbnail.originalWidth;
+                height = thumbnail.originalHeight;
+                console.log(`从 Photon 获取的原始尺寸: ${width}x${height}`);
+              }
+
+              // 确保缩略图文件夹存在
+              await ensureThumbnailFolders(env);
+
+              // 保存到 thumbnails/thumb/ 文件夹
+              const baseFilename = r2Key.split('/').pop().replace(/\.(jpg|jpeg|png|gif|webp)$/i, '');
+              const thumbFilename = `${baseFilename}.webp`;
+              thumbnailR2Key = `thumbnails/thumb/${thumbFilename}`;
+              await env.FILES.put(thumbnailR2Key, thumbnail.buffer, {
+                httpMetadata: { contentType: thumbnail.mimeType }
+              });
+              console.log(`缩略图已生成: ${thumbnailR2Key}`);
+
+              // 为缩略图创建文件记录
+              await env.DB.prepare(`
+                INSERT INTO files (
+                  filename, path, r2_key, size, mime_type, extension,
+                  is_image, is_video, upload_user, width, height
+                ) VALUES (?, ?, ?, ?, ?, ?, 1, 0, ?, ?, ?)
+              `).bind(
+                thumbFilename, '/thumbnails/thumb', thumbnailR2Key,
+                thumbnail.buffer.byteLength, thumbnail.mimeType, 'webp',
+                uploadUser, thumbnail.width, thumbnail.height
+              ).run();
+            }
+
+            // 生成中等尺寸 (800x800)
+            const medium = await generateThumbnail(
+              fileBuffer,
+              mimeType,
+              THUMBNAIL_SIZES.medium.maxWidth,
+              THUMBNAIL_SIZES.medium.maxHeight,
+              THUMBNAIL_SIZES.medium.quality
+            );
+
+            if (medium) {
+              // 如果第一次缩略图失败，尝试从中等尺寸获取原始尺寸
+              if (width === 0 || height === 0) {
+                width = medium.originalWidth;
+                height = medium.originalHeight;
+                console.log(`从 Photon 获取的原始尺寸: ${width}x${height}`);
+              }
+
+              // 保存到 thumbnails/medium/ 文件夹
+              const baseFilename = r2Key.split('/').pop().replace(/\.(jpg|jpeg|png|gif|webp)$/i, '');
+              const mediumFilename = `${baseFilename}.webp`;
+              mediumR2Key = `thumbnails/medium/${mediumFilename}`;
+              await env.FILES.put(mediumR2Key, medium.buffer, {
+                httpMetadata: { contentType: medium.mimeType }
+              });
+              console.log(`中等尺寸已生成: ${mediumR2Key}`);
+
+              // 为中等尺寸创建文件记录
+              await env.DB.prepare(`
+                INSERT INTO files (
+                  filename, path, r2_key, size, mime_type, extension,
+                  is_image, is_video, upload_user, width, height
+                ) VALUES (?, ?, ?, ?, ?, ?, 1, 0, ?, ?, ?)
+              `).bind(
+                mediumFilename, '/thumbnails/medium', mediumR2Key,
+                medium.buffer.byteLength, medium.mimeType, 'webp',
+                uploadUser, medium.width, medium.height
+              ).run();
+            }
+
+            hasThumbnails = (thumbnail || medium) ? 1 : 0;
+          } catch (imgError) {
+            console.error('图片处理失败:', imgError);
+            // 继续上传，不阻塞
+          }
+        }
+
         // 保存元数据到数据库
         console.log(`准备保存文件元数据到数据库: ${filename}, size: ${size}, r2Key: ${r2Key}`);
 
         const result = await env.DB.prepare(`
           INSERT INTO files (
             filename, path, r2_key, size, mime_type, extension,
-            is_image, is_video, upload_user, expires_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            is_image, is_video, upload_user, expires_at,
+            width, height, thumbnail_r2_key, medium_r2_key, has_thumbnails
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
           filename, path, r2Key, size, mimeType, extension,
-          isImage, isVideo, uploadUser, expiresAt
+          isImage, isVideo, uploadUser, expiresAt,
+          width, height, thumbnailR2Key, mediumR2Key, hasThumbnails
         ).run();
 
         console.log(`数据库插入结果:`, result);
@@ -163,7 +300,11 @@ export async function onRequestPost(context) {
           isImage: Boolean(isImage),
           isVideo: Boolean(isVideo),
           expiresAt,
-          url: `/api/files/${r2Key}` // 文件访问 URL
+          url: `/api/files/${r2Key}`, // 文件访问 URL
+          thumbnailUrl: thumbnailR2Key ? `/api/files/${thumbnailR2Key}` : null,
+          mediumUrl: mediumR2Key ? `/api/files/${mediumR2Key}` : null,
+          width,
+          height
         });
 
       } catch (error) {
