@@ -184,7 +184,7 @@ function ThreadPage() {
     initHighlight()
   }, [thread, toast])
 
-  // 为文章内容中的图片添加点击放大功能
+  // 为文章内容中的图片添加点击放大功能，并将图片替换为缩略图
   useEffect(() => {
     if (thread && contentRef.current) {
       const images = contentRef.current.querySelectorAll('img')
@@ -192,11 +192,44 @@ function ThreadPage() {
       const handleImageClick = (e) => {
         const img = e.target
         if (img.tagName === 'IMG') {
-          setLightboxImage(img.src)
+          // 使用原图 URL（存储在 data-original 属性中）
+          const originalUrl = img.getAttribute('data-original') || img.src
+          setLightboxImage(originalUrl)
         }
       }
 
       images.forEach(img => {
+        const originalSrc = img.src
+
+        // 保存原图 URL
+        img.setAttribute('data-original', originalSrc)
+
+        // 如果是我们的 R2 图片（包含 /api/files/），使用 srcset 让浏览器自动选择
+        if (originalSrc.includes('/api/files/') && !originalSrc.includes('/thumbnails/')) {
+          // 提取 r2_key 部分
+          const urlParts = originalSrc.split('/api/files/')
+          if (urlParts.length === 2) {
+            const r2Key = urlParts[1]
+            const filename = r2Key.split('/').pop().replace(/\.(jpg|jpeg|png|gif)$/i, '.webp')
+
+            const thumbUrl = `/api/files/thumbnails/thumb/${filename}`
+            const mediumUrl = `/api/files/thumbnails/medium/${filename}`
+
+            // 使用 srcset 让浏览器根据显示尺寸自动选择最合适的图片
+            // thumb: 300px, medium: 800px, 原图用于更大尺寸
+            img.srcset = `${thumbUrl} 300w, ${mediumUrl} 800w, ${originalSrc} 1200w`
+
+            // sizes 告诉浏览器图片在不同屏幕宽度下的显示尺寸
+            // 这里假设图片最大宽度为容器宽度，可以根据实际情况调整
+            img.sizes = '(max-width: 400px) 300px, (max-width: 900px) 800px, 1200px'
+
+            // 设置默认 src 为 medium（兼容不支持 srcset 的浏览器）
+            img.src = mediumUrl
+
+            console.log(`✓ 设置图片 srcset: thumb(300w), medium(800w), original(1200w)`)
+          }
+        }
+
         img.style.cursor = 'pointer'
         img.addEventListener('click', handleImageClick)
       })
