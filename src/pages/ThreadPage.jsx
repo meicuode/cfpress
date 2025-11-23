@@ -397,10 +397,86 @@ function ThreadPage() {
     )
   }
 
+  // 提取文章中的第一张图片作为封面图
+  const getFirstImage = (content) => {
+    if (!content) return null
+    const match = content.match(/<img[^>]+src="([^"]+)"/)
+    return match ? match[1] : null
+  }
+
+  // 生成纯文本摘要
+  const getPlainTextExcerpt = (content, maxLength = 160) => {
+    if (!content) return ''
+    // 移除 HTML 标签
+    const text = content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+    return text.length > maxLength ? text.substring(0, maxLength) + '...' : text
+  }
+
+  const articleUrl = `${window.location.origin}/thread/${thread.id}`
+  const coverImage = getFirstImage(thread.content) || '/avatar.png'
+  const excerpt = thread.excerpt || getPlainTextExcerpt(thread.content)
+  const publishDate = thread.published_at || thread.created_at
+  const modifiedDate = thread.updated_at || publishDate
+
+  // Schema.org 结构化数据
+  const schemaData = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: thread.title,
+    description: excerpt,
+    image: coverImage.startsWith('http') ? coverImage : `${window.location.origin}${coverImage}`,
+    datePublished: publishDate,
+    dateModified: modifiedDate,
+    author: {
+      '@type': 'Person',
+      name: thread.author_name || 'Admin'
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: 'CFPress',
+      logo: {
+        '@type': 'ImageObject',
+        url: `${window.location.origin}/avatar.png`
+      }
+    },
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': articleUrl
+    }
+  }
+
   return (
     <>
       <Helmet>
-        <title>{thread ? `${thread.title} - CFPress` : 'CFPress'}</title>
+        {/* 基础 SEO */}
+        <title>{thread.title} - CFPress</title>
+        <meta name="description" content={excerpt} />
+        <link rel="canonical" href={articleUrl} />
+
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content={articleUrl} />
+        <meta property="og:title" content={thread.title} />
+        <meta property="og:description" content={excerpt} />
+        <meta property="og:image" content={coverImage.startsWith('http') ? coverImage : `${window.location.origin}${coverImage}`} />
+        <meta property="og:site_name" content="CFPress" />
+        <meta property="article:published_time" content={publishDate} />
+        <meta property="article:modified_time" content={modifiedDate} />
+        {thread.tags?.map(tag => (
+          <meta key={tag.id} property="article:tag" content={tag.name} />
+        ))}
+
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:url" content={articleUrl} />
+        <meta name="twitter:title" content={thread.title} />
+        <meta name="twitter:description" content={excerpt} />
+        <meta name="twitter:image" content={coverImage.startsWith('http') ? coverImage : `${window.location.origin}${coverImage}`} />
+
+        {/* Schema.org 结构化数据 */}
+        <script type="application/ld+json">
+          {JSON.stringify(schemaData)}
+        </script>
       </Helmet>
       <div className="flex flex-col gap-8">
       <article className="bg-bg-card backdrop-blur-md rounded-xl border border-border p-10 max-md:p-6">
