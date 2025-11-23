@@ -1,9 +1,15 @@
 /**
  * Cloudflare Pages Function - Categories API
  * GET /api/categories - 获取分类列表
+ * POST /api/categories - 创建新分类
+ *
+ * 使用 Cloudflare Cache API 边缘缓存 30 分钟
  */
 
-export async function onRequestGet(context) {
+import { withCache, DEFAULT_CACHE_TTL, purgeCategoriesCache } from './_utils/cache.js';
+
+// 原始 GET 处理函数
+async function handleGet(context) {
   const { env } = context;
 
   try {
@@ -48,6 +54,9 @@ export async function onRequestGet(context) {
   }
 }
 
+// 使用缓存包装 GET
+export const onRequestGet = withCache(handleGet, { ttl: DEFAULT_CACHE_TTL });
+
 /**
  * POST /api/categories - 创建新分类
  */
@@ -85,6 +94,9 @@ export async function onRequestPost(context) {
       parent_id || null,
       new Date().toISOString()
     ).run();
+
+    // 清除分类缓存
+    purgeCategoriesCache(request, context);
 
     return new Response(
       JSON.stringify({

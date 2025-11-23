@@ -5,6 +5,8 @@
  * DELETE /api/threads/:id - 删除文章
  */
 
+import { purgeSeoCaches } from '../_utils/cache.js';
+
 // 获取单个文章
 export async function onRequestGet(context) {
   const { env, params } = context;
@@ -198,6 +200,9 @@ export async function onRequestPut(context) {
       ).bind(tagId).run();
     }
 
+    // 清除 SEO 缓存（RSS Feed、Sitemap）
+    purgeSeoCaches(request, context);
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -290,6 +295,9 @@ export async function onRequestDelete(context) {
         WHERE id = ? AND thread_count > 0
       `).bind(tag.tag_id).run();
     }
+
+    // 清除 SEO 缓存（RSS Feed、Sitemap）
+    purgeSeoCaches(request, context);
 
     return new Response(
       JSON.stringify({

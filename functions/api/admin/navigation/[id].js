@@ -4,6 +4,8 @@
  * DELETE /api/admin/navigation/:id - 删除菜单项
  */
 
+import { purgeNavigationCache } from '../../_utils/cache.js';
+
 export async function onRequestPut(context) {
   const { env, params, request } = context;
   const { id } = params;
@@ -61,6 +63,9 @@ export async function onRequestPut(context) {
       id
     ).run();
 
+    // 清除导航菜单缓存
+    purgeNavigationCache(request, context);
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -106,6 +111,9 @@ export async function onRequestDelete(context) {
     await env.DB.prepare(
       'DELETE FROM navigation WHERE id = ?'
     ).bind(id).run();
+
+    // 清除导航菜单缓存
+    purgeNavigationCache(request, context);
 
     return new Response(
       JSON.stringify({

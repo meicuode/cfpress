@@ -4,6 +4,8 @@
  * POST /api/threads - 创建新文章
  */
 
+import { purgeSeoCaches } from './_utils/cache.js';
+
 // 获取文章列表
 export async function onRequestGet(context) {
   const { env, request } = context;
@@ -288,6 +290,11 @@ export async function onRequestPost(context) {
           VALUES (?, ?)
         `).bind(threadId, tagId).run();
       }
+    }
+
+    // 如果是发布状态，清除 SEO 缓存（RSS Feed、Sitemap）
+    if (status === 'publish') {
+      purgeSeoCaches(request, context);
     }
 
     return new Response(

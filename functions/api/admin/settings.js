@@ -4,6 +4,8 @@
  * POST /api/admin/settings - 保存站点设置
  */
 
+import { purgeNavigationCache } from '../_utils/cache.js';
+
 // 获取站点设置
 export async function onRequestGet(context) {
   const { env } = context;
@@ -107,6 +109,9 @@ export async function onRequestPost(context) {
         ).run();
       }
     }
+
+    // 清除导航缓存（因为导航 API 也读取了部分设置如 site_title、site_icon 等）
+    purgeNavigationCache(request, context);
 
     return new Response(
       JSON.stringify({

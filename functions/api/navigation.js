@@ -1,9 +1,14 @@
 /**
  * Navigation API - 前端导航菜单
  * GET /api/navigation - 获取导航菜单数据
+ *
+ * 使用 Cloudflare Cache API 边缘缓存 30 分钟
  */
 
-export async function onRequestGet(context) {
+import { withCache, DEFAULT_CACHE_TTL } from './_utils/cache.js';
+
+// 原始处理函数
+async function handleGet(context) {
   const { env } = context;
 
   try {
@@ -83,3 +88,6 @@ export async function onRequestGet(context) {
     );
   }
 }
+
+// 使用缓存包装导出
+export const onRequestGet = withCache(handleGet, { ttl: DEFAULT_CACHE_TTL });

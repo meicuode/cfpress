@@ -3,9 +3,11 @@
  * DELETE /api/categories/:id - 删除分类
  */
 
+import { purgeCategoriesCache } from '../_utils/cache.js';
+
 // 删除分类
 export async function onRequestDelete(context) {
-  const { env, params } = context;
+  const { env, params, request } = context;
   const { id } = params;
 
   try {
@@ -45,6 +47,9 @@ export async function onRequestDelete(context) {
     await env.DB.prepare(
       'DELETE FROM categories WHERE id = ?'
     ).bind(id).run();
+
+    // 清除分类缓存
+    purgeCategoriesCache(request, context);
 
     return new Response(
       JSON.stringify({

@@ -4,6 +4,8 @@
  * POST /api/admin/navigation - 创建新菜单项
  */
 
+import { purgeNavigationCache } from '../_utils/cache.js';
+
 export async function onRequestGet(context) {
   const { env } = context;
 
@@ -93,6 +95,9 @@ export async function onRequestPost(context) {
       position || 'header',
       new Date().toISOString()
     ).run();
+
+    // 清除导航菜单缓存
+    purgeNavigationCache(request, context);
 
     return new Response(
       JSON.stringify({
