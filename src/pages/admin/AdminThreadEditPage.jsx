@@ -34,18 +34,13 @@ function AdminThreadEditPage() {
     tag_names: []
   })
 
+  const [categories, setCategories] = useState([])
+  const [tagInput, setTagInput] = useState('')
+
   // 确保 categories 总是数组
   const safeCategories = Array.isArray(categories) ? categories : []
   const safeCategoryIds = Array.isArray(formData.category_ids) ? formData.category_ids : []
   const safeTagNames = Array.isArray(formData.tag_names) ? formData.tag_names : []
-
-  const [categories, setCategories] = useState([])
-  const [tagInput, setTagInput] = useState('')
-
-  // 从 R2 选择图片的处理函数
-  const handleR2ImageSelect = useCallback(() => {
-    setShowFilePicker(true)
-  }, [])
 
   // 插入 R2 图片到编辑器
   const handleInsertR2Image = useCallback((file) => {
@@ -67,35 +62,41 @@ function AdminThreadEditPage() {
   }, [toast])
 
   // Quill 工具栏配置 - 包含字体大小和自定义图片处理器
-  const modules = useMemo(() => ({
-    toolbar: {
-      container: [
-        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
-        [{ 'size': ['small', false, 'large', 'huge'] }],  // 字体大小
-        [{ 'font': [] }],  // 字体系列
-        ['bold', 'italic', 'underline', 'strike'],
-        [{ 'color': [] }, { 'background': [] }],
-        [{ 'script': 'sub'}, { 'script': 'super' }],
-        ['blockquote', 'code-block'],
-        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-        [{ 'indent': '-1'}, { 'indent': '+1' }],
-        [{ 'align': [] }],
-        ['link', 'image', 'image-r2', 'video'],  // 添加 image-r2 自定义按钮
-        ['clean']
-      ],
-      handlers: {
-        image: function() {
-          // 本地上传图片
-          fileInputRef.current?.click()
-        },
-        'image-r2': handleR2ImageSelect  // R2 图片选择
+  const modules = useMemo(() => {
+    return {
+      toolbar: {
+        container: [
+          [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+          [{ 'size': ['small', false, 'large', 'huge'] }],  // 字体大小
+          [{ 'font': [] }],  // 字体系列
+          ['bold', 'italic', 'underline', 'strike'],
+          [{ 'color': [] }, { 'background': [] }],
+          [{ 'script': 'sub'}, { 'script': 'super' }],
+          ['blockquote', 'code-block'],
+          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+          [{ 'indent': '-1'}, { 'indent': '+1' }],
+          [{ 'align': [] }],
+          ['link', 'image', 'image-r2', 'video'],  // 添加 image-r2 自定义按钮
+          ['clean']
+        ],
+        handlers: {
+          image: function() {
+            // 本地上传图片
+            fileInputRef.current?.click()
+          },
+          'image-r2': () => setShowFilePicker(true)  // R2 图片选择
+        }
+      },
+      imageResize: {
+        parchment: Quill.import('parchment'),
+        modules: ['Resize', 'DisplaySize', 'Toolbar']
+      },
+      clipboard: {
+        // 禁用 Quill 默认的图片 base64 转换
+        matchVisual: false
       }
-    },
-    imageResize: {
-      parchment: Quill.import('parchment'),
-      modules: ['Resize', 'DisplaySize', 'Toolbar']
     }
-  }), [handleR2ImageSelect]) // 添加依赖
+  }, []) // 空依赖数组，只初始化一次
 
   // 处理文件上传（通用函数）
   const uploadImageToR2 = useCallback(async (file) => {
@@ -104,16 +105,12 @@ function AdminThreadEditPage() {
     formData.append('path', '/cfpress')
     formData.append('uploadUser', 'admin')
 
-    console.log('开始上传图片到 /cfpress 目录...')
-    toast.info('图片上传中...')
-
     const response = await fetch('/api/admin/files/upload', {
       method: 'POST',
       body: formData
     })
 
     const data = await response.json()
-    console.log('上传响应:', data)
 
     if (response.ok && data.uploaded && data.uploaded.length > 0) {
       return data.uploaded[0].url
@@ -139,7 +136,6 @@ function AdminThreadEditPage() {
 
     try {
       const imageUrl = await uploadImageToR2(file)
-      console.log('插入图片 URL:', imageUrl)
 
       // 使用 Quill Delta API 插入图片
       const Delta = quill.constructor.import('delta')
@@ -159,41 +155,69 @@ function AdminThreadEditPage() {
     e.target.value = ''
   }
 
-  // 处理粘贴图片
-  useEffect(() => {
+  // 处理粘贴图片 - 监听 text-change 事件检测 base64 图片并上传
+  const handleQuillReady = useCallback(() => {
     const quill = quillRef.current?.getEditor()
     if (!quill) return
 
-    const handlePaste = async (e) => {
-      const clipboardData = e.clipboardData || window.clipboardData
-      const items = clipboardData?.items
+    const handleTextChange = async (delta, oldDelta, source) => {
+      if (source !== 'user') return
 
-      if (!items) return
+      // 检查 delta 中是否有插入的图片
+      const ops = delta.ops || []
 
-      // 查找粘贴的图片
-      for (let i = 0; i < items.length; i++) {
-        if (items[i].type.indexOf('image') !== -1) {
-          e.preventDefault() // 阻止默认粘贴行为
-          e.stopPropagation() // 阻止事件冒泡
+      for (let i = 0; i < ops.length; i++) {
+        const op = ops[i]
 
-          const file = items[i].getAsFile()
-          if (!file) continue
+        // 检查是否插入了 base64 图片
+        if (op.insert && op.insert.image && typeof op.insert.image === 'string' && op.insert.image.startsWith('data:image')) {
+          const base64Data = op.insert.image
 
-          const range = quill.getSelection(true)
-          const cursorPosition = range ? range.index : 0
+          // 先禁用历史记录，避免撤销时出现问题
+          quill.history.cutoff()
 
-          try {
-            const imageUrl = await uploadImageToR2(file)
-            console.log('粘贴图片已上传，URL:', imageUrl)
+          // 立即删除 base64 图片（获取当前所有内容，找到并删除）
+          const currentContents = quill.getContents()
+          let imageIndex = -1
+          let currentIndex = 0
 
-            // 插入图片
-            quill.insertEmbed(cursorPosition, 'image', imageUrl, 'user')
-            quill.setSelection(cursorPosition + 1)
+          for (let j = 0; j < currentContents.ops.length; j++) {
+            const currentOp = currentContents.ops[j]
 
-            toast.success('粘贴图片上传成功')
-          } catch (error) {
-            console.error('粘贴图片上传失败:', error)
-            toast.error('粘贴图片上传失败: ' + error.message)
+            if (currentOp.insert && currentOp.insert.image === base64Data) {
+              imageIndex = currentIndex
+              break
+            }
+
+            if (typeof currentOp.insert === 'string') {
+              currentIndex += currentOp.insert.length
+            } else {
+              currentIndex += 1
+            }
+          }
+
+          if (imageIndex !== -1) {
+            quill.deleteText(imageIndex, 1, 'silent')
+
+            toast.info('正在上传图片...')
+
+            try {
+              // 将 base64 转换为 File
+              const response = await fetch(base64Data)
+              const blob = await response.blob()
+              const file = new File([blob], `paste-${Date.now()}.png`, { type: blob.type })
+
+              const imageUrl = await uploadImageToR2(file)
+
+              // 在相同位置插入 R2 URL 图片
+              quill.insertEmbed(imageIndex, 'image', imageUrl, 'silent')
+              quill.setSelection(imageIndex + 1)
+
+              toast.success('粘贴图片上传成功')
+            } catch (error) {
+              console.error('粘贴图片上传失败:', error)
+              toast.error('粘贴图片上传失败: ' + error.message)
+            }
           }
 
           break
@@ -201,15 +225,7 @@ function AdminThreadEditPage() {
       }
     }
 
-    const editorElement = quill.root
-    editorElement.addEventListener('paste', handlePaste, true)
-
-    console.log('✅ 粘贴图片处理器已注册')
-
-    return () => {
-      editorElement.removeEventListener('paste', handlePaste, true)
-      console.log('❌ 粘贴图片处理器已移除')
-    }
+    quill.on('text-change', handleTextChange)
   }, [uploadImageToR2, toast])
 
   const formats = [
@@ -231,7 +247,6 @@ function AdminThreadEditPage() {
     } else {
       setLoading(false)
     }
-    console.log('当前文章 ID:', id, '是否显示查看按钮:', id && id !== 'new')
   }, [id])
 
   const loadCategories = async () => {
@@ -352,8 +367,6 @@ function AdminThreadEditPage() {
       const url = isNewThread ? '/api/threads' : `/api/threads/${id}`
       const method = isNewThread ? 'POST' : 'PUT'
 
-      console.log('保存文章 - URL:', url, 'Method:', method, 'ID:', id, 'isNewThread:', isNewThread)
-
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -361,14 +374,12 @@ function AdminThreadEditPage() {
       })
 
       const data = await response.json()
-      console.log('API 响应:', data)
 
       if (response.ok) {
         toast.success(publishNow ? '文章已发布' : '文章已保存')
 
         // 如果是新建文章，跳转到编辑页面
         if (isNewThread && data.id) {
-          console.log('新建文章，准备跳转到:', `/admin/threads/${data.id}/edit`)
           // 使用 replace 而不是 push，避免返回时回到 new 页面
           navigate(`/admin/threads/${data.id}/edit`, { replace: true })
         } else if (isNewThread && !data.id) {
@@ -477,7 +488,13 @@ function AdminThreadEditPage() {
                 style={{ display: 'none' }}
               />
               <ReactQuill
-                ref={quillRef}
+                ref={(el) => {
+                  quillRef.current = el
+                  if (el) {
+                    // 延迟执行，确保 Quill 实例完全初始化
+                    setTimeout(() => handleQuillReady(), 0)
+                  }
+                }}
                 theme="snow"
                 value={content}
                 onChange={setContent}
