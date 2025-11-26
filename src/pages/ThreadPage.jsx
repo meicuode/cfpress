@@ -6,6 +6,7 @@ import { useToast } from '../contexts/ToastContext'
 import CommentForm from '../components/CommentForm'
 import CommentList from '../components/CommentList'
 import PostNavigation from '../components/PostNavigation'
+import ShareButtons from '../components/ShareButtons'
 
 function ThreadPage() {
   const { id } = useParams()
@@ -595,6 +596,12 @@ function ThreadPage() {
             [&_td]:border [&_td]:border-border [&_td]:px-4 [&_td]:py-2"
           ref={contentRef}
           dangerouslySetInnerHTML={{ __html: thread.content }}
+        />
+
+        {/* 社交分享按钮 */}
+        <ShareButtons
+          url={`${window.location.origin}/thread/${id}`}
+          title={thread.title}
         />
       </article>
 
