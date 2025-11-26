@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useParams } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { useToast } from '../contexts/ToastContext'
@@ -10,6 +11,7 @@ function ThreadPage() {
   const { id } = useParams()
   const toast = useToast()
   const contentRef = useRef(null)
+  const articleRef = useRef(null)
   const [thread, setThread] = useState(null)
   const [comments, setComments] = useState([])
   const [loading, setLoading] = useState(true)
@@ -17,6 +19,7 @@ function ThreadPage() {
   const [replyTo, setReplyTo] = useState(null) // 回复的评论 ID
   const [lightboxImage, setLightboxImage] = useState(null) // 图片预览
   const [showOriginalSize, setShowOriginalSize] = useState(false) // 是否显示原图尺寸
+  const [readingProgress, setReadingProgress] = useState(0) // 阅读进度 0-100
 
   // 格式化日期
   const formatDate = (dateString) => {
@@ -268,6 +271,55 @@ function ThreadPage() {
     }
   }, [lightboxImage])
 
+  // 阅读进度条
+  useEffect(() => {
+    const calculateProgress = () => {
+      if (!articleRef.current) return
+
+      const article = articleRef.current
+      const articleRect = article.getBoundingClientRect()
+      const articleTop = articleRect.top + window.scrollY
+      const articleHeight = article.offsetHeight
+      const windowHeight = window.innerHeight
+      const scrollY = window.scrollY
+
+      // 计算文章可见区域的进度
+      // 当文章顶部到达视口顶部时开始计算
+      // 当文章底部到达视口底部时完成
+      const startPoint = articleTop
+      const endPoint = articleTop + articleHeight - windowHeight
+
+      if (scrollY <= startPoint) {
+        setReadingProgress(0)
+      } else if (scrollY >= endPoint) {
+        setReadingProgress(100)
+      } else {
+        const progress = ((scrollY - startPoint) / (endPoint - startPoint)) * 100
+        setReadingProgress(Math.min(100, Math.max(0, progress)))
+      }
+    }
+
+    // 使用 requestAnimationFrame 优化滚动性能
+    let ticking = false
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          calculateProgress()
+          ticking = false
+        })
+        ticking = true
+      }
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    // 初始计算
+    calculateProgress()
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+    }
+  }, [thread])
+
   const loadThread = async () => {
     try {
       setLoading(true)
@@ -478,8 +530,20 @@ function ThreadPage() {
           {JSON.stringify(schemaData)}
         </script>
       </Helmet>
+
+      {/* 阅读进度条 - 通过 Portal 渲染到导航栏底部 */}
+      {typeof document !== 'undefined' && document.getElementById('reading-progress-bar') && createPortal(
+        <div className="h-[3px] bg-black/10">
+          <div
+            className="h-full bg-gradient-to-r from-accent-blue to-blue-400 transition-all duration-150 ease-out shadow-[0_0_8px_rgba(74,158,255,0.5)]"
+            style={{ width: `${readingProgress}%` }}
+          />
+        </div>,
+        document.getElementById('reading-progress-bar')
+      )}
+
       <div className="flex flex-col gap-8">
-      <article className="bg-bg-card backdrop-blur-md rounded-xl border border-border p-10 max-md:p-6">
+      <article ref={articleRef} className="bg-bg-card backdrop-blur-md rounded-xl border border-border p-10 max-md:p-6">
         <header className="mb-8 pb-5 border-b border-border">
           <h1 className="text-[28px] font-bold text-text-primary mb-4 leading-tight">
             {thread.title}

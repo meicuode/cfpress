@@ -173,6 +173,9 @@ function Navbar() {
           </div>
         )}
       </div>
+
+      {/* 阅读进度条插槽 - 由 ThreadPage 通过 portal 注入 */}
+      <div id="reading-progress-bar" className="absolute bottom-0 left-0 right-0" />
     </nav>
   )
 }
