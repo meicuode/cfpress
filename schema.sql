@@ -512,5 +512,25 @@ CREATE INDEX IF NOT EXISTS idx_folders_parent_path ON folders(parent_path);
 INSERT OR IGNORE INTO folders (name, path, parent_path) VALUES ('root', '/', NULL);
 
 -- ============================================================================
+-- 文章草稿表 (Thread Drafts)
+-- 存储文章的自动保存草稿副本，每篇文章只保留一个最新草稿
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS thread_drafts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  thread_id INTEGER NOT NULL UNIQUE,      -- 关联的文章ID（每篇文章只有一个草稿）
+  title TEXT,                             -- 草稿标题
+  content TEXT,                           -- 草稿内容
+  excerpt TEXT,                           -- 草稿摘要
+  categories TEXT,                        -- 分类ID列表（JSON数组）
+  tags TEXT,                              -- 标签名称列表（JSON数组）
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 草稿表索引
+CREATE INDEX IF NOT EXISTS idx_thread_drafts_thread_id ON thread_drafts(thread_id);
+CREATE INDEX IF NOT EXISTS idx_thread_drafts_updated_at ON thread_drafts(updated_at DESC);
+
+-- ============================================================================
 -- 结束
 -- ============================================================================

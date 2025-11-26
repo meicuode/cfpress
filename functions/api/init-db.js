@@ -1,15 +1,49 @@
 /**
  * 数据库初始化 API
  * GET /api/init-db - 初始化数据库（仅开发环境）
+ * GET /api/init-db?purgeBeforeInit=true - 先清空所有表再初始化
  *
  * 使用数组方式执行 SQL，避免分号分割问题
  */
 
 export async function onRequestGet(context) {
-  const { env } = context;
+  const { env, request } = context;
 
   try {
+    // 解析 URL 参数
+    const url = new URL(request.url);
+    const purgeBeforeInit = url.searchParams.get('purgeBeforeInit') === 'true';
+
     console.log('🔧 开始初始化数据库...');
+    if (purgeBeforeInit) {
+      console.log('⚠️ purgeBeforeInit=true, 将先删除所有表再重新创建');
+    }
+
+    // 如果需要先清空数据库
+    if (purgeBeforeInit) {
+      const dropStatements = [
+        'DROP TABLE IF EXISTS thread_drafts',
+        'DROP TABLE IF EXISTS folders',
+        'DROP TABLE IF EXISTS files',
+        'DROP TABLE IF EXISTS access_logs',
+        'DROP TABLE IF EXISTS media',
+        'DROP TABLE IF EXISTS navigation',
+        'DROP TABLE IF EXISTS settings',
+        'DROP TABLE IF EXISTS friends',
+        'DROP TABLE IF EXISTS comments',
+        'DROP TABLE IF EXISTS thread_tags',
+        'DROP TABLE IF EXISTS thread_categories',
+        'DROP TABLE IF EXISTS tags',
+        'DROP TABLE IF EXISTS categories',
+        'DROP TABLE IF EXISTS threads',
+        'DROP TABLE IF EXISTS users'
+      ];
+
+      console.log(`🗑️ 准备删除 ${dropStatements.length} 个表`);
+      const dropBatch = dropStatements.map(stmt => env.DB.prepare(stmt));
+      await env.DB.batch(dropBatch);
+      console.log('✅ 已删除所有表');
+    }
 
     // 将所有 SQL 语句组织成数组，包括触发器
     // 每个元素是一条完整的 SQL 语句
@@ -227,6 +261,19 @@ export async function onRequestGet(context) {
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 )`);
 
+    // 15. thread_drafts 表 - 文章草稿副本
+    sqlStatements.push(`CREATE TABLE IF NOT EXISTS thread_drafts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  thread_id INTEGER NOT NULL UNIQUE,
+  title TEXT,
+  content TEXT,
+  excerpt TEXT,
+  categories TEXT,
+  tags TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+)`);
+
     // ========== 索引 ==========
 
     // threads 索引
@@ -283,6 +330,10 @@ export async function onRequestGet(context) {
     // folders 索引
     sqlStatements.push(`CREATE INDEX IF NOT EXISTS idx_folders_path ON folders(path)`);
     sqlStatements.push(`CREATE INDEX IF NOT EXISTS idx_folders_parent_path ON folders(parent_path)`);
+
+    // thread_drafts 索引
+    sqlStatements.push(`CREATE INDEX IF NOT EXISTS idx_thread_drafts_thread_id ON thread_drafts(thread_id)`);
+    sqlStatements.push(`CREATE INDEX IF NOT EXISTS idx_thread_drafts_updated_at ON thread_drafts(updated_at DESC)`);
 
     // ========== 初始数据 ==========
 

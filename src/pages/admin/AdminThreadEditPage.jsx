@@ -19,11 +19,15 @@ function AdminThreadEditPage() {
   const navigate = useNavigate()
   const toast = useToast()
   const quillRef = useRef(null)
-  const fileInputRef = useRef(null) // 添加 file input ref
+  const fileInputRef = useRef(null)
+  const autoSaveTimerRef = useRef(null)
+  const lastSavedContentRef = useRef(null) // 记录上次保存的内容，用于检测变化
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [content, setContent] = useState('')
   const [showFilePicker, setShowFilePicker] = useState(false)
+  const [showDraftPrompt, setShowDraftPrompt] = useState(false) // 显示草稿恢复提示
+  const [pendingDraft, setPendingDraft] = useState(null) // 待恢复的草稿数据
 
   const [formData, setFormData] = useState({
     title: '',
@@ -249,6 +253,26 @@ function AdminThreadEditPage() {
     }
   }, [id])
 
+  // 30秒自动保存草稿
+  useEffect(() => {
+    // 清除之前的定时器
+    if (autoSaveTimerRef.current) {
+      clearInterval(autoSaveTimerRef.current)
+    }
+
+    // 设置30秒自动保存定时器
+    autoSaveTimerRef.current = setInterval(() => {
+      autoSaveDraft()
+    }, 30000) // 30秒 = 30000毫秒
+
+    // 清理函数
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearInterval(autoSaveTimerRef.current)
+      }
+    }
+  }, [content, formData, id, saving])
+
   const loadCategories = async () => {
     try {
       const response = await fetch('/api/categories')
@@ -270,31 +294,59 @@ function AdminThreadEditPage() {
       if (response.ok) {
         const thread = data.thread
 
-        setFormData({
+        const threadFormData = {
           title: thread.title || '',
           slug: thread.slug || '',
           excerpt: thread.excerpt || '',
           status: thread.status || 'draft',
           category_ids: thread.categories?.map(c => c.id) || [],
           tag_names: thread.tags?.map(t => t.name) || []
-        })
+        }
 
         // 处理内容格式
+        let threadContent = ''
         if (thread.content) {
           try {
             // 尝试解析 Editor.js JSON 格式
             const parsed = JSON.parse(thread.content)
             if (parsed.blocks) {
               // 转换 Editor.js 格式为 HTML
-              setContent(convertEditorJsToHtml(parsed))
+              threadContent = convertEditorJsToHtml(parsed)
             } else {
-              setContent(thread.content)
+              threadContent = thread.content
             }
           } catch {
             // 如果不是 JSON，直接使用 HTML
-            setContent(thread.content)
+            threadContent = thread.content
           }
         }
+
+        // 检查是否有草稿
+        try {
+          const draftResponse = await fetch(`/api/threads/${id}/draft`)
+          const draftData = await draftResponse.json()
+
+          if (draftData.exists && draftData.draft) {
+            // 有草稿，保存待恢复的草稿数据并显示提示
+            setPendingDraft(draftData.draft)
+            setShowDraftPrompt(true)
+          }
+        } catch (draftError) {
+          console.error('检查草稿失败:', draftError)
+        }
+
+        // 先加载原始文章内容
+        setFormData(threadFormData)
+        setContent(threadContent)
+
+        // 记录初始内容用于变化检测
+        lastSavedContentRef.current = JSON.stringify({
+          title: threadFormData.title,
+          content: threadContent,
+          excerpt: threadFormData.excerpt,
+          category_ids: threadFormData.category_ids,
+          tag_names: threadFormData.tag_names
+        })
       } else {
         toast.error('加载文章失败')
         navigate('/admin/threads')
@@ -305,6 +357,38 @@ function AdminThreadEditPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // 恢复草稿内容
+  const handleRestoreDraft = () => {
+    if (pendingDraft) {
+      setFormData(prev => ({
+        ...prev,
+        title: pendingDraft.title || prev.title,
+        excerpt: pendingDraft.excerpt || prev.excerpt,
+        category_ids: pendingDraft.categories || prev.category_ids,
+        tag_names: pendingDraft.tags || prev.tag_names
+      }))
+      setContent(pendingDraft.content || '')
+      toast.success('草稿已恢复')
+    }
+    setShowDraftPrompt(false)
+    setPendingDraft(null)
+  }
+
+  // 放弃草稿，使用原始内容
+  const handleDiscardDraft = async () => {
+    // 删除服务器上的草稿
+    if (id && id !== 'new') {
+      try {
+        await fetch(`/api/threads/${id}/draft`, { method: 'DELETE' })
+      } catch (error) {
+        console.error('删除草稿失败:', error)
+      }
+    }
+    setShowDraftPrompt(false)
+    setPendingDraft(null)
+    toast.info('已使用原始内容')
   }
 
   // 简单的 Editor.js 到 HTML 转换
@@ -378,6 +462,25 @@ function AdminThreadEditPage() {
       if (response.ok) {
         toast.success(publishNow ? '文章已发布' : '文章已保存')
 
+        // 删除草稿（因为已经保存到正式文章了）
+        const savedId = isNewThread ? data.id : id
+        if (savedId) {
+          try {
+            await fetch(`/api/threads/${savedId}/draft`, { method: 'DELETE' })
+          } catch (draftError) {
+            console.error('删除草稿失败:', draftError)
+          }
+
+          // 更新上次保存的内容记录
+          lastSavedContentRef.current = JSON.stringify({
+            title: formData.title,
+            content: content,
+            excerpt: formData.excerpt,
+            category_ids: formData.category_ids,
+            tag_names: formData.tag_names
+          })
+        }
+
         // 如果是新建文章，跳转到编辑页面
         if (isNewThread && data.id) {
           // 使用 replace 而不是 push，避免返回时回到 new 页面
@@ -392,6 +495,115 @@ function AdminThreadEditPage() {
     } catch (error) {
       console.error('保存失败:', error)
       toast.error('保存失败')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // 自动保存草稿到服务器（仅当内容有变化时）
+  const autoSaveDraft = async () => {
+    // 如果是新建文章，不自动保存草稿（因为还没有文章ID）
+    const isNewThread = !id || id === 'new'
+    if (isNewThread) {
+      return
+    }
+
+    // 如果没有标题或内容，不自动保存
+    if (!formData.title.trim() && !content.trim()) {
+      return
+    }
+
+    // 如果正在保存中，跳过本次自动保存
+    if (saving) {
+      return
+    }
+
+    // 检测内容是否有变化
+    const currentContent = JSON.stringify({
+      title: formData.title,
+      content: content,
+      excerpt: formData.excerpt,
+      category_ids: formData.category_ids,
+      tag_names: formData.tag_names
+    })
+
+    if (currentContent === lastSavedContentRef.current) {
+      // 内容没有变化，跳过保存
+      return
+    }
+
+    // 显示自动保存提示
+    toast.info('自动保存中...')
+
+    try {
+      const postData = {
+        title: formData.title,
+        content: content,
+        excerpt: formData.excerpt,
+        categories: formData.category_ids,
+        tags: formData.tag_names
+      }
+
+      const response = await fetch(`/api/threads/${id}/draft`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(postData)
+      })
+
+      if (response.ok) {
+        // 更新上次保存的内容
+        lastSavedContentRef.current = currentContent
+        toast.success('草稿自动保存成功')
+      } else {
+        toast.error('草稿自动保存失败')
+      }
+    } catch (error) {
+      console.error('草稿自动保存失败:', error)
+      toast.error('草稿自动保存失败')
+    }
+  }
+
+  // 手动保存到草稿副本（用于已发布文章的"保存副本"按钮）
+  const saveAsDraftCopy = async () => {
+    if (!id || id === 'new') {
+      toast.error('请先保存文章')
+      return
+    }
+
+    setSaving(true)
+    toast.info('保存副本中...')
+
+    try {
+      const postData = {
+        title: formData.title,
+        content: content,
+        excerpt: formData.excerpt,
+        categories: formData.category_ids,
+        tags: formData.tag_names
+      }
+
+      const response = await fetch(`/api/threads/${id}/draft`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(postData)
+      })
+
+      if (response.ok) {
+        // 更新上次保存的内容记录
+        lastSavedContentRef.current = JSON.stringify({
+          title: formData.title,
+          content: content,
+          excerpt: formData.excerpt,
+          category_ids: formData.category_ids,
+          tag_names: formData.tag_names
+        })
+        toast.success('副本已保存（不影响已发布文章）')
+      } else {
+        toast.error('保存副本失败')
+      }
+    } catch (error) {
+      console.error('保存副本失败:', error)
+      toast.error('保存副本失败')
     } finally {
       setSaving(false)
     }
@@ -554,13 +766,25 @@ function AdminThreadEditPage() {
             </div>
 
             <div className="flex gap-2">
-              <button
-                onClick={() => handleSave(false)}
-                disabled={saving}
-                className="flex-1 px-4 py-2 bg-gray-100 border border-gray-300 rounded text-sm text-[#23282d] hover:bg-gray-200 disabled:opacity-50"
-              >
-                {saving ? '保存中...' : '保存草稿'}
-              </button>
+              {/* 已发布文章：显示"保存副本"，保存到草稿表不影响正式文章 */}
+              {/* 新建/草稿文章：显示"保存草稿"，保存到正式文章表 */}
+              {formData.status === 'publish' ? (
+                <button
+                  onClick={saveAsDraftCopy}
+                  disabled={saving}
+                  className="flex-1 px-4 py-2 bg-gray-100 border border-gray-300 rounded text-sm text-[#23282d] hover:bg-gray-200 disabled:opacity-50"
+                >
+                  {saving ? '保存中...' : '保存副本'}
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleSave(false)}
+                  disabled={saving}
+                  className="flex-1 px-4 py-2 bg-gray-100 border border-gray-300 rounded text-sm text-[#23282d] hover:bg-gray-200 disabled:opacity-50"
+                >
+                  {saving ? '保存中...' : '保存草稿'}
+                </button>
+              )}
               <button
                 onClick={() => handleSave(true)}
                 disabled={saving}
@@ -638,6 +862,33 @@ function AdminThreadEditPage() {
       onSelect={handleInsertR2Image}
       fileType="image"
     />
+
+    {/* 草稿恢复提示对话框 */}
+    {showDraftPrompt && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg shadow-xl p-6 max-w-md mx-4">
+          <h3 className="text-lg font-medium text-[#23282d] mb-3">发现未保存的草稿</h3>
+          <p className="text-sm text-[#646970] mb-4">
+            此文章存在自动保存的草稿副本（保存于 {pendingDraft?.updated_at ? new Date(pendingDraft.updated_at).toLocaleString() : '未知时间'}）。
+            是否恢复草稿内容？
+          </p>
+          <div className="flex gap-3 justify-end">
+            <button
+              onClick={handleDiscardDraft}
+              className="px-4 py-2 text-sm text-[#646970] hover:text-[#23282d] border border-gray-300 rounded hover:bg-gray-50"
+            >
+              放弃草稿
+            </button>
+            <button
+              onClick={handleRestoreDraft}
+              className="px-4 py-2 text-sm text-white bg-[#0073aa] rounded hover:bg-[#005a87]"
+            >
+              恢复草稿
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     </>
   )
 }
