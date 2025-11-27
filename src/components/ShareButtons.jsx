@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useToast } from '../contexts/ToastContext'
 
 function ShareButtons({ url, title }) {
@@ -123,14 +124,14 @@ function ShareButtons({ url, title }) {
         </div>
       </div>
 
-      {/* 微信二维码弹窗 */}
-      {showWechatQR && (
+      {/* 微信二维码弹窗 - 使用 Portal 渲染到 body */}
+      {showWechatQR && typeof document !== 'undefined' && createPortal(
         <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 pointer-events-none"
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
           onClick={() => setShowWechatQR(false)}
         >
           <div
-            className="bg-bg-card border border-border rounded-xl p-6 max-w-sm w-full shadow-2xl pointer-events-auto"
+            className="bg-bg-card border border-border rounded-xl p-6 max-w-sm w-full shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
@@ -154,7 +155,8 @@ function ShareButtons({ url, title }) {
               使用微信扫描二维码分享文章
             </p>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   )
