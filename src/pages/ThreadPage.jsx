@@ -21,6 +21,7 @@ function ThreadPage() {
   const [lightboxImage, setLightboxImage] = useState(null) // 图片预览
   const [showOriginalSize, setShowOriginalSize] = useState(false) // 是否显示原图尺寸
   const [readingProgress, setReadingProgress] = useState(0) // 阅读进度 0-100
+  const [showBackToTop, setShowBackToTop] = useState(false) // 是否显示返回顶部按钮
 
   // 格式化日期
   const formatDate = (dateString) => {
@@ -272,7 +273,7 @@ function ThreadPage() {
     }
   }, [lightboxImage])
 
-  // 阅读进度条
+  // 阅读进度条和返回顶部按钮
   useEffect(() => {
     const calculateProgress = () => {
       if (!articleRef.current) return
@@ -298,6 +299,9 @@ function ThreadPage() {
         const progress = ((scrollY - startPoint) / (endPoint - startPoint)) * 100
         setReadingProgress(Math.min(100, Math.max(0, progress)))
       }
+
+      // 滚动超过 300px 时显示返回顶部按钮
+      setShowBackToTop(scrollY > 300)
     }
 
     // 使用 requestAnimationFrame 优化滚动性能
@@ -320,6 +324,14 @@ function ThreadPage() {
       window.removeEventListener('scroll', handleScroll)
     }
   }, [thread])
+
+  // 返回顶部
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    })
+  }
 
   const loadThread = async () => {
     try {
@@ -645,6 +657,29 @@ function ThreadPage() {
       {/* TODO: 实现上一篇/下一篇导航 */}
       {/* <PostNavigation prevPost={prevPost} nextPost={nextPost} /> */}
     </div>
+
+    {/* 返回顶部按钮 */}
+    {showBackToTop && (
+      <button
+        onClick={scrollToTop}
+        className="fixed bottom-8 right-8 z-[9998] w-12 h-12 bg-accent-blue hover:bg-blue-500 text-white rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95"
+        aria-label="返回顶部"
+      >
+        <svg
+          className="w-6 h-6"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M5 10l7-7m0 0l7 7m-7-7v18"
+          />
+        </svg>
+      </button>
+    )}
 
     {/* 图片预览 Lightbox */}
     {lightboxImage && (
