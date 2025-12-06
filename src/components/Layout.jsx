@@ -1,11 +1,16 @@
 import { useState, useEffect } from 'react'
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 import Navbar from './Navbar'
 import Sidebar from './Sidebar'
+import DynamicLayout from './DynamicLayout'
 import Footer from './Footer'
 
 function Layout() {
   const [iconVersion, setIconVersion] = useState(null)
+  const location = useLocation()
+
+  // 判断是否是首页 - 只有首页使用动态布局
+  const isHomePage = location.pathname === '/'
 
   // 获取站点图标版本号
   useEffect(() => {
@@ -64,12 +69,21 @@ function Layout() {
       <div className="fixed top-0 left-0 w-full h-full -z-10 bg-gradient-to-b from-bg-primary to-[#2d3748] bg-cover bg-center bg-fixed before:content-[''] before:absolute before:top-0 before:left-0 before:w-full before:h-full before:bg-bg-primary/70"></div>
 
       <Navbar />
-      <div className="flex max-w-[1200px] mx-auto mt-[96px] px-6 gap-8 w-full flex-1 max-[968px]:flex-col max-[968px]:px-5 pb-16">
-        <Sidebar />
-        <main className="flex-1 min-w-0">
+
+      {/* 首页使用动态布局，其他页面使用传统布局 */}
+      {isHomePage ? (
+        <DynamicLayout>
           <Outlet />
-        </main>
-      </div>
+        </DynamicLayout>
+      ) : (
+        <div className="flex max-w-[1200px] mx-auto mt-[96px] px-6 gap-8 w-full flex-1 max-[968px]:flex-col max-[968px]:px-5 pb-16">
+          <Sidebar />
+          <main className="flex-1 min-w-0">
+            <Outlet />
+          </main>
+        </div>
+      )}
+
       <Footer />
     </div>
   )

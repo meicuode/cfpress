@@ -22,7 +22,9 @@ export async function onRequestGet(context) {
     // 如果需要先清空数据库
     if (purgeBeforeInit) {
       const dropStatements = [
+        'DROP TABLE IF EXISTS site_layouts',
         'DROP TABLE IF EXISTS thread_drafts',
+        'DROP TABLE IF EXISTS site_themes',
         'DROP TABLE IF EXISTS folders',
         'DROP TABLE IF EXISTS files',
         'DROP TABLE IF EXISTS access_logs',
@@ -180,7 +182,17 @@ export async function onRequestGet(context) {
   updated_at TEXT
 )`);
 
-    // 10. navigation 表
+    // 10. site_themes 表 - 主题配置
+    sqlStatements.push(`CREATE TABLE IF NOT EXISTS site_themes (
+  id INTEGER PRIMARY KEY DEFAULT 1,
+  theme_name TEXT NOT NULL DEFAULT 'dark',
+  custom_colors TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CHECK (id = 1)
+)`);
+
+    // 11. navigation 表
     sqlStatements.push(`CREATE TABLE IF NOT EXISTS navigation (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   label TEXT NOT NULL,
@@ -272,6 +284,16 @@ export async function onRequestGet(context) {
   tags TEXT,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+)`);
+
+    // 16. site_layouts 表 - 页面布局配置
+    sqlStatements.push(`CREATE TABLE IF NOT EXISTS site_layouts (
+  id INTEGER PRIMARY KEY DEFAULT 1,
+  page_key TEXT NOT NULL DEFAULT 'home',
+  layout_config TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CHECK (id = 1)
 )`);
 
     // ========== 索引 ==========

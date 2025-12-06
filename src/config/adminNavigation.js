@@ -37,6 +37,15 @@ export const adminNavigationConfig = {
       icon: '🎨',
       path: '/admin/appearance',
       children: [
+        {
+          id: 'theme-settings',
+          label: '主题设置',
+          path: '/admin/appearance/theme',
+          children: [
+            { id: 'theme-color', label: '颜色主题', path: '/admin/appearance/theme/color' },
+            { id: 'theme-layout', label: '页面布局', path: '/admin/appearance/theme/layout' }
+          ]
+        },
         { id: 'menus', label: '菜单', path: '/admin/appearance/menus' },
         { id: 'footer', label: '页脚设置', path: '/admin/appearance/footer' },
         { id: 'categories', label: '分类', path: '/admin/appearance/categories' }

@@ -4,7 +4,7 @@ import { adminNavigationConfig } from '../config/adminNavigation'
 
 function AdminSidebar() {
   const location = useLocation()
-  const [expandedMenus, setExpandedMenus] = useState(['threads', 'appearance', 'settings'])
+  const [expandedMenus, setExpandedMenus] = useState(['threads', 'appearance', 'theme-settings', 'settings'])
 
   const toggleMenu = (menuId) => {
     setExpandedMenus(prev =>
@@ -57,17 +57,51 @@ function AdminSidebar() {
                 {expandedMenus.includes(item.id) && (
                   <div className="bg-[#1d2327]">
                     {item.children.map((child) => (
-                      <Link
-                        key={child.id}
-                        to={child.path}
-                        className={`block px-4 py-2 pl-12 text-sm transition-colors ${
-                          isActive(child.path)
-                            ? 'text-[#00a0d2]'
-                            : 'text-[#ddd] hover:text-[#00a0d2]'
-                        }`}
-                      >
-                        {child.label}
-                      </Link>
+                      <div key={child.id}>
+                        {child.children && child.children.length > 0 ? (
+                          <>
+                            <button
+                              onClick={() => toggleMenu(child.id)}
+                              className={`w-full flex items-center gap-2 px-4 py-2 pl-12 text-sm transition-colors ${
+                                isParentActive(child)
+                                  ? 'text-[#00a0d2]'
+                                  : 'text-[#ddd] hover:text-[#00a0d2]'
+                              }`}
+                            >
+                              <span className="flex-1 text-left">{child.label}</span>
+                              <span className="text-xs">{expandedMenus.includes(child.id) ? '▼' : '▶'}</span>
+                            </button>
+                            {expandedMenus.includes(child.id) && (
+                              <div className="bg-[#191e23]">
+                                {child.children.map((subChild) => (
+                                  <Link
+                                    key={subChild.id}
+                                    to={subChild.path}
+                                    className={`block px-4 py-2 pl-16 text-sm transition-colors ${
+                                      isActive(subChild.path)
+                                        ? 'text-[#00a0d2]'
+                                        : 'text-[#aaa] hover:text-[#00a0d2]'
+                                    }`}
+                                  >
+                                    {subChild.label}
+                                  </Link>
+                                ))}
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <Link
+                            to={child.path}
+                            className={`block px-4 py-2 pl-12 text-sm transition-colors ${
+                              isActive(child.path)
+                                ? 'text-[#00a0d2]'
+                                : 'text-[#ddd] hover:text-[#00a0d2]'
+                            }`}
+                          >
+                            {child.label}
+                          </Link>
+                        )}
+                      </div>
                     ))}
                   </div>
                 )}
