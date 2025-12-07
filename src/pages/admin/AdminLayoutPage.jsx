@@ -327,21 +327,23 @@ function AdminLayoutPage() {
     if (!module) return null
 
     const isDragging = draggedItem?.moduleId === moduleId
+    const isDefaultLayout = editingLayout?.is_default === 1
 
     return (
       <div
         key={moduleId}
-        draggable
-        onDragStart={() => handleDragStart(moduleId, zone)}
-        onDragOver={(e) => handleDragOver(e, zone, index)}
-        onDragLeave={handleDragLeave}
-        onDrop={(e) => handleDrop(e, zone, index)}
-        onDragEnd={handleDragEnd}
+        draggable={!isDefaultLayout}
+        onDragStart={() => !isDefaultLayout && handleDragStart(moduleId, zone)}
+        onDragOver={(e) => !isDefaultLayout && handleDragOver(e, zone, index)}
+        onDragLeave={!isDefaultLayout ? handleDragLeave : undefined}
+        onDrop={(e) => !isDefaultLayout && handleDrop(e, zone, index)}
+        onDragEnd={!isDefaultLayout ? handleDragEnd : undefined}
         className={`
-          relative p-3 rounded-lg border-2 cursor-move transition-all
+          relative p-3 rounded-lg border-2 transition-all
           ${module.color} text-white
+          ${isDefaultLayout ? 'cursor-default opacity-80' : 'cursor-move'}
           ${isDragging ? 'opacity-50 border-dashed' : 'border-transparent'}
-          hover:shadow-lg
+          ${!isDefaultLayout ? 'hover:shadow-lg' : ''}
         `}
       >
         <div className="flex items-center justify-between">
@@ -349,7 +351,7 @@ function AdminLayoutPage() {
             <span className="text-lg">{module.icon}</span>
             <span className="font-medium text-sm">{module.name}</span>
           </div>
-          {!module.required && (
+          {!module.required && !isDefaultLayout && (
             <button
               onClick={(e) => {
                 e.stopPropagation()
@@ -370,17 +372,18 @@ function AdminLayoutPage() {
   const renderDropZone = (zone, title, modules) => {
     const isDropTarget = dragOverZone === zone && dragOverIndex === null
     const isEmpty = modules.length === 0
+    const isDefaultLayout = editingLayout?.is_default === 1
 
     return (
       <div
         className={`
           flex-1 min-h-[200px] rounded-lg border-2 border-dashed p-4 transition-all
           ${zone === 'main' ? 'border-red-300 bg-red-50' : 'border-blue-300 bg-blue-50'}
-          ${isDropTarget ? 'ring-4 ring-blue-500 bg-blue-100' : ''}
+          ${isDropTarget && !isDefaultLayout ? 'ring-4 ring-blue-500 bg-blue-100' : ''}
         `}
-        onDragOver={(e) => handleDragOver(e, zone, null)}
-        onDragLeave={handleDragLeave}
-        onDrop={(e) => handleDrop(e, zone, modules.length)}
+        onDragOver={(e) => !isDefaultLayout && handleDragOver(e, zone, null)}
+        onDragLeave={!isDefaultLayout ? handleDragLeave : undefined}
+        onDrop={(e) => !isDefaultLayout && handleDrop(e, zone, modules.length)}
       >
         <div className="text-center mb-3">
           <span className={`text-sm font-bold ${zone === 'main' ? 'text-red-600' : 'text-blue-600'}`}>
@@ -391,7 +394,7 @@ function AdminLayoutPage() {
           {modules.map((moduleId, index) => renderModuleCard(moduleId, zone, index))}
           {isEmpty && (
             <div className="text-center py-8 text-gray-400 text-sm">
-              拖拽模块到这里
+              {isDefaultLayout ? '无模块' : '拖拽模块到这里'}
             </div>
           )}
         </div>
@@ -492,44 +495,57 @@ function AdminLayoutPage() {
             {/* 标题栏和操作按钮 */}
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-[#23282d]">
-                编辑布局: {editingLayout?.name || '新布局'}
+                {editingLayout?.is_default === 1 ? '查看布局' : '编辑布局'}: {editingLayout?.name || '新布局'}
                 <span className="text-sm font-normal text-[#666] ml-2">
                   ({PAGE_TYPES[selectedPageType]?.name})
                 </span>
-              </h3>
-              <div className="flex items-center gap-3">
-                {hasChanges && (
-                  <span className="text-sm text-[#856404] bg-[#fff3cd] px-2 py-1 rounded">
-                    有未保存的更改
+                {editingLayout?.is_default === 1 && (
+                  <span className="ml-2 text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded">
+                    默认布局
                   </span>
                 )}
-                <button
-                  onClick={handleReset}
-                  className="px-3 py-1.5 bg-[#f0f0f1] hover:bg-[#e0e0e0] text-[#23282d] rounded text-sm font-medium transition-colors"
-                >
-                  重置
-                </button>
-                {hasChanges && (
+              </h3>
+              <div className="flex items-center gap-3">
+                {editingLayout?.is_default === 1 ? (
+                  <span className="text-sm text-[#666]">
+                    默认布局不可修改，如需自定义请新建布局
+                  </span>
+                ) : (
                   <>
+                    {hasChanges && (
+                      <span className="text-sm text-[#856404] bg-[#fff3cd] px-2 py-1 rounded">
+                        有未保存的更改
+                      </span>
+                    )}
                     <button
-                      onClick={handleCancel}
+                      onClick={handleReset}
                       className="px-3 py-1.5 bg-[#f0f0f1] hover:bg-[#e0e0e0] text-[#23282d] rounded text-sm font-medium transition-colors"
                     >
-                      取消
+                      重置
                     </button>
-                    <button
-                      onClick={handleSave}
-                      className="px-3 py-1.5 bg-[#2271b1] hover:bg-[#135e96] text-white rounded text-sm font-medium transition-colors"
-                    >
-                      保存布局
-                    </button>
+                    {hasChanges && (
+                      <>
+                        <button
+                          onClick={handleCancel}
+                          className="px-3 py-1.5 bg-[#f0f0f1] hover:bg-[#e0e0e0] text-[#23282d] rounded text-sm font-medium transition-colors"
+                        >
+                          取消
+                        </button>
+                        <button
+                          onClick={handleSave}
+                          className="px-3 py-1.5 bg-[#2271b1] hover:bg-[#135e96] text-white rounded text-sm font-medium transition-colors"
+                        >
+                          保存布局
+                        </button>
+                      </>
+                    )}
                   </>
                 )}
               </div>
             </div>
 
-            {/* 可添加的模块 */}
-            {unusedModules.length > 0 && (
+            {/* 可添加的模块 - 默认布局时隐藏 */}
+            {editingLayout?.is_default !== 1 && unusedModules.length > 0 && (
               <div className="mb-6 p-4 bg-[#f8f9fa] rounded-lg">
                 <h4 className="text-sm font-semibold text-[#666] mb-3">可添加的模块（拖拽到下方区域）</h4>
                 <div className="flex gap-2 flex-wrap">

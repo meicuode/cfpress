@@ -1,5 +1,6 @@
 import { useLayout, AVAILABLE_MODULES } from '../contexts/LayoutContext'
 import { ProfileCard, CategoriesCard, TagsCloud, RecentPosts } from './modules'
+import { useRef, useState, useEffect } from 'react'
 
 // 模块ID到组件的映射
 const MODULE_COMPONENTS = {
@@ -22,10 +23,48 @@ function ModuleRenderer({ moduleId }) {
 
 // 渲染侧边栏（左或右）
 function SidebarColumn({ modules }) {
+  const sidebarRef = useRef(null)
+  const [shouldStick, setShouldStick] = useState(true)
+
+  useEffect(() => {
+    const checkHeight = () => {
+      if (sidebarRef.current) {
+        const sidebarHeight = sidebarRef.current.scrollHeight
+        const viewportHeight = window.innerHeight
+        const availableHeight = viewportHeight - 110 // 减去顶部导航栏高度
+
+        // 如果内容高度超过可用高度，取消固定定位
+        setShouldStick(sidebarHeight <= availableHeight)
+      }
+    }
+
+    // 初始检查
+    checkHeight()
+
+    // 监听窗口大小变化
+    window.addEventListener('resize', checkHeight)
+
+    // 使用 ResizeObserver 监听内容变化
+    const resizeObserver = new ResizeObserver(checkHeight)
+    if (sidebarRef.current) {
+      resizeObserver.observe(sidebarRef.current)
+    }
+
+    return () => {
+      window.removeEventListener('resize', checkHeight)
+      resizeObserver.disconnect()
+    }
+  }, [modules])
+
   if (!modules || modules.length === 0) return null
 
   return (
-    <aside className="w-[280px] flex-shrink-0 flex flex-col gap-5 max-[968px]:w-full sticky top-[90px] self-start max-h-[calc(100vh-110px)] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+    <aside
+      ref={sidebarRef}
+      className={`w-[280px] flex-shrink-0 flex flex-col gap-5 max-[968px]:w-full ${
+        shouldStick ? 'sticky top-[90px] self-start' : ''
+      }`}
+    >
       {modules.map(moduleId => (
         <ModuleRenderer key={moduleId} moduleId={moduleId} />
       ))}
