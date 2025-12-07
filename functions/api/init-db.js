@@ -22,6 +22,7 @@ export async function onRequestGet(context) {
     // 如果需要先清空数据库
     if (purgeBeforeInit) {
       const dropStatements = [
+        'DROP TABLE IF EXISTS site_page_layouts',
         'DROP TABLE IF EXISTS site_layouts',
         'DROP TABLE IF EXISTS thread_drafts',
         'DROP TABLE IF EXISTS site_themes',
@@ -286,14 +287,24 @@ export async function onRequestGet(context) {
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 )`);
 
-    // 16. site_layouts 表 - 页面布局配置
+    // 16. site_layouts 表 - 布局模板
     sqlStatements.push(`CREATE TABLE IF NOT EXISTS site_layouts (
-  id INTEGER PRIMARY KEY DEFAULT 1,
-  page_key TEXT NOT NULL DEFAULT 'home',
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  page_type TEXT NOT NULL DEFAULT 'home',
   layout_config TEXT NOT NULL,
+  is_default INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+)`);
+
+    // 17. site_page_layouts 表 - 页面布局绑定
+    sqlStatements.push(`CREATE TABLE IF NOT EXISTS site_page_layouts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  page_type TEXT NOT NULL UNIQUE,
+  layout_id INTEGER NOT NULL,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CHECK (id = 1)
+  FOREIGN KEY (layout_id) REFERENCES site_layouts(id)
 )`);
 
     // ========== 索引 ==========
@@ -498,6 +509,25 @@ export async function onRequestGet(context) {
 
     // 根文件夹
     sqlStatements.push(`INSERT OR IGNORE INTO folders (name, path, parent_path) VALUES ('root', '/', NULL)`);
+
+    // 默认布局模板
+    sqlStatements.push(`INSERT INTO site_layouts (name, page_type, layout_config, is_default) VALUES
+  ('默认首页布局', 'home', '{"leftSidebar":["profile","categories"],"main":["posts"],"rightSidebar":[]}', 1),
+  ('默认文章页布局', 'thread', '{"leftSidebar":["profile","categories"],"main":["content","comments"],"rightSidebar":["toc","recentPosts"]}', 1),
+  ('默认分类页布局', 'category', '{"leftSidebar":["profile","categories"],"main":["posts"],"rightSidebar":[]}', 1),
+  ('默认标签页布局', 'tag', '{"leftSidebar":["profile","categories"],"main":["posts"],"rightSidebar":[]}', 1)`);
+
+    // 页面布局绑定
+    sqlStatements.push(`INSERT INTO site_page_layouts (page_type, layout_id) VALUES
+  ('home', 1),
+  ('thread', 2),
+  ('category', 3),
+  ('tag', 4)`);
+
+    // site_layouts 索引
+    sqlStatements.push(`CREATE INDEX IF NOT EXISTS idx_site_layouts_is_default ON site_layouts(is_default)`);
+    sqlStatements.push(`CREATE INDEX IF NOT EXISTS idx_site_layouts_page_type ON site_layouts(page_type)`);
+    sqlStatements.push(`CREATE INDEX IF NOT EXISTS idx_site_page_layouts_page_type ON site_page_layouts(page_type)`);
 
     console.log(`📝 准备执行 ${sqlStatements.length} 条 SQL 语句`);
 

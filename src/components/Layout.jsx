@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import Navbar from './Navbar'
 import Sidebar from './Sidebar'
@@ -9,8 +9,18 @@ function Layout() {
   const [iconVersion, setIconVersion] = useState(null)
   const location = useLocation()
 
-  // 判断是否是首页 - 只有首页使用动态布局
-  const isHomePage = location.pathname === '/'
+  // 根据路径判断页面类型
+  const pageType = useMemo(() => {
+    const path = location.pathname
+    if (path === '/') return 'home'
+    if (path.startsWith('/thread/')) return 'thread'
+    if (path.startsWith('/category/')) return 'category'
+    if (path.startsWith('/tag/')) return 'tag'
+    return null // 其他页面使用传统布局
+  }, [location.pathname])
+
+  // 是否使用动态布局
+  const useDynamicLayout = pageType !== null
 
   // 获取站点图标版本号
   useEffect(() => {
@@ -70,9 +80,9 @@ function Layout() {
 
       <Navbar />
 
-      {/* 首页使用动态布局，其他页面使用传统布局 */}
-      {isHomePage ? (
-        <DynamicLayout>
+      {/* 支持动态布局的页面 */}
+      {useDynamicLayout ? (
+        <DynamicLayout pageType={pageType}>
           <Outlet />
         </DynamicLayout>
       ) : (

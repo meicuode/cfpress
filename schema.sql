@@ -532,5 +532,64 @@ CREATE INDEX IF NOT EXISTS idx_thread_drafts_thread_id ON thread_drafts(thread_i
 CREATE INDEX IF NOT EXISTS idx_thread_drafts_updated_at ON thread_drafts(updated_at DESC);
 
 -- ============================================================================
+-- 主题配置表 (Site Themes)
+-- 存储站点主题颜色配置
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS site_themes (
+  id INTEGER PRIMARY KEY DEFAULT 1,
+  theme_name TEXT NOT NULL DEFAULT 'dark',      -- 主题名称
+  custom_colors TEXT,                            -- 自定义颜色配置（JSON）
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CHECK (id = 1)                                 -- 确保只有一条记录
+);
+
+-- ============================================================================
+-- 布局模板表 (Site Layouts)
+-- 存储可复用的布局模板
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS site_layouts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,                           -- 布局模板名称（如"默认布局"、"简约布局"）
+  page_type TEXT NOT NULL DEFAULT 'home',       -- 页面类型: home/thread/category/tag
+  layout_config TEXT NOT NULL,                  -- 布局配置（JSON）
+                                                -- 格式: {"leftSidebar":["profile"],"main":["posts"],"rightSidebar":[]}
+  is_default INTEGER NOT NULL DEFAULT 0,        -- 是否为该类型页面的默认布局
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============================================================================
+-- 页面布局绑定表 (Site Page Layouts)
+-- 将布局模板绑定到特定页面类型
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS site_page_layouts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  page_type TEXT NOT NULL UNIQUE,               -- 页面类型: home/thread/category/tag/about/friends
+  layout_id INTEGER NOT NULL,                   -- 关联的布局模板ID
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (layout_id) REFERENCES site_layouts(id)
+);
+
+-- 布局表索引
+CREATE INDEX IF NOT EXISTS idx_site_layouts_is_default ON site_layouts(is_default);
+CREATE INDEX IF NOT EXISTS idx_site_layouts_page_type ON site_layouts(page_type);
+CREATE INDEX IF NOT EXISTS idx_site_page_layouts_page_type ON site_page_layouts(page_type);
+
+-- 插入默认布局模板
+INSERT INTO site_layouts (name, page_type, layout_config, is_default) VALUES
+  ('默认首页布局', 'home', '{"leftSidebar":["profile","categories"],"main":["posts"],"rightSidebar":[]}', 1),
+  ('默认文章页布局', 'thread', '{"leftSidebar":["profile","categories"],"main":["content","comments"],"rightSidebar":["toc","recentPosts"]}', 1),
+  ('默认分类页布局', 'category', '{"leftSidebar":["profile","categories"],"main":["posts"],"rightSidebar":[]}', 1),
+  ('默认标签页布局', 'tag', '{"leftSidebar":["profile","categories"],"main":["posts"],"rightSidebar":[]}', 1);
+
+-- 绑定页面布局
+INSERT INTO site_page_layouts (page_type, layout_id) VALUES
+  ('home', 1),
+  ('thread', 2),
+  ('category', 3),
+  ('tag', 4);
+
+-- ============================================================================
 -- 结束
 -- ============================================================================
